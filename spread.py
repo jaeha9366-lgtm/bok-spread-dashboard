@@ -178,6 +178,82 @@ def main():
             ])
     print(f"Successfully saved raw data to '{csv_file}'.")
 
+    # 5b. Write raw data to spread.xlsx
+    xlsx_file = "spread.xlsx"
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+        from openpyxl.utils import get_column_letter
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Spread Data"
+
+        # Headers
+        headers = [
+            "Date", "Base_Rate", 
+            "Treasury_3Y", "Spread_Treasury_3Y", 
+            "Corporate_3Y", "Spread_Corporate_3Y", 
+            "Industrial_1Y", "Spread_Industrial_1Y", 
+            "Stabilization_1Y", "Spread_Stabilization_1Y"
+        ]
+        ws.append(headers)
+
+        # Style Header
+        header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="1F497D", end_color="1F497D", fill_type="solid")
+        header_align = Alignment(horizontal="center", vertical="center", wrap_text=True)
+
+        for col_num, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col_num)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = header_align
+
+        # Add Data
+        for d in aligned_data:
+            ws.append([
+                d["date"], d["base_rate"],
+                d["treasury_3y"], d["spread_tb"],
+                d["corporate_3y"], d["spread_corp"],
+                d["industrial_1y"], d["spread_ind"],
+                d["stabilization_1y"], d["spread_msb"]
+            ])
+
+        # Style Data Rows
+        thin_border = Border(
+            left=Side(style='thin', color='D9D9D9'),
+            right=Side(style='thin', color='D9D9D9'),
+            top=Side(style='thin', color='D9D9D9'),
+            bottom=Side(style='thin', color='D9D9D9')
+        )
+        data_font = Font(name="Calibri", size=11)
+        
+        for row in range(2, len(aligned_data) + 2):
+            cell_date = ws.cell(row=row, column=1)
+            cell_date.alignment = Alignment(horizontal="center")
+            
+            for col in range(2, 11):
+                cell = ws.cell(row=row, column=col)
+                cell.number_format = "0.00"
+                cell.alignment = Alignment(horizontal="right")
+
+            for col in range(1, 11):
+                cell = ws.cell(row=row, column=col)
+                cell.font = data_font
+                cell.border = thin_border
+
+        # Auto-fit columns
+        for col in ws.columns:
+            max_len = max(len(str(cell.value or '')) for cell in col)
+            col_letter = get_column_letter(col[0].column)
+            ws.column_dimensions[col_letter].width = max(max_len + 3, 12)
+
+        wb.save(xlsx_file)
+        print(f"Successfully saved raw data to '{xlsx_file}'.")
+    except Exception as ex:
+        print(f"Error saving to Excel via openpyxl: {ex}")
+
     # 6. Calculate statistics for each bond series
     stats_tb = calculate_bond_stats(aligned_data, "treasury_3y", "spread_tb")
     stats_corp = calculate_bond_stats(aligned_data, "corporate_3y", "spread_corp")
@@ -218,6 +294,12 @@ def main():
         f.write(html_content)
     print(f"Successfully created premium dashboard in '{html_file}'.")
 
+    # Also synchronize to index.html
+    index_file = "index.html"
+    with open(index_file, "w", encoding="utf-8") as f:
+        f.write(html_content)
+    print(f"Successfully synchronized premium dashboard to '{index_file}'.")
+
 def get_html_template(data_list, stats):
     data_json = json.dumps(data_list)
     stats_json = json.dumps(stats)
@@ -236,6 +318,9 @@ def get_html_template(data_list, stats):
     
     <!-- Chart.js via CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- SheetJS via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     
     <style>
         :root {{
@@ -346,6 +431,14 @@ def get_html_template(data_list, stats):
             border-color: var(--border-hover);
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+        }}
+
+        .btn-excel:hover {{
+            background: rgba(16, 185, 129, 0.1) !important;
+            border-color: rgba(16, 185, 129, 0.4) !important;
+            color: #34d399 !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15) !important;
         }}
 
         /* Anomaly Alert Banner */
@@ -841,6 +934,12 @@ def get_html_template(data_list, stats):
                             <path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z" />
                         </svg>
                         CSV 다운로드
+                    </button>
+                    <button class="btn btn-excel" id="btnDownloadExcel">
+                        <svg style="width:16px;height:16px;fill:currentColor" viewBox="0 0 24 24">
+                            <path d="M14 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V8L14 2M16 16H14V18H12V16H10V14H12V12H14V14H16V16M14 9V3.5L18.5 8H14V9Z" />
+                        </svg>
+                        엑셀 다운로드
                     </button>
                 </div>
             </div>
@@ -1611,6 +1710,45 @@ def get_html_template(data_list, stats):
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+        }});
+
+        // Excel File Download Action
+        document.getElementById('btnDownloadExcel').addEventListener('click', () => {{
+            // Convert rawData to sheet with human-friendly headers
+            const worksheetData = rawData.map(row => ({{
+                "조회 일자": row.date,
+                "기준 금리 (%)": row.base_rate,
+                "국고채 3년 (%)": row.treasury_3y,
+                "국고채 3년 스프레드 (%p)": row.spread_tb,
+                "회사채 3년 (%)": row.corporate_3y,
+                "회사채 3년 스프레드 (%p)": row.spread_corp,
+                "산금채 1년 (%)": row.industrial_1y,
+                "산금채 1년 스프레드 (%p)": row.spread_ind,
+                "통안증권 1년 (%)": row.stabilization_1y,
+                "통안증권 1년 스프레드 (%p)": row.spread_msb
+            }}));
+
+            const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+            
+            // Adjust column widths for professional look
+            const colWidths = [
+                {{ wch: 14 }}, // Date
+                {{ wch: 15 }}, // Base rate
+                {{ wch: 15 }}, // Treasury
+                {{ wch: 24 }}, // Treasury spread
+                {{ wch: 15 }}, // Corp
+                {{ wch: 24 }}, // Corp spread
+                {{ wch: 15 }}, // Ind
+                {{ wch: 24 }}, // Ind spread
+                {{ wch: 15 }}, // stabilization
+                {{ wch: 24 }}  // stabilization spread
+            ];
+            worksheet['!cols'] = colWidths;
+
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "5개년 Raw 데이터");
+            
+            XLSX.writeFile(workbook, "spread.xlsx");
         }});
 
         // Initial setup
