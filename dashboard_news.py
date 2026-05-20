@@ -2,6 +2,7 @@ import requests
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
 import re
+import time
 from bs4 import BeautifulSoup
 import os
 from dotenv import load_dotenv
@@ -38,30 +39,53 @@ def scrape_article_body(url):
     return ""
 
 
-def ai_summarize(title, body):
-    """Gemini API를 활용해 기사 제목과 본문을 읽고 핵심 내용을 2~3문장으로 요약합니다."""
+def ai_summarize(title, body, rss_desc=""):
+    """Gemini API를 활용해 기사 핵심을 2~3문장으로 재구성합니다.
+    body 스크래핑 실패 시 rss_desc(부분 본문)로 대체합니다."""
     if not gemini_client:
         return None
 
-    prompt = f"""다음은 한국 채권/외환 금융 뉴스 기사입니다. 기사의 핵심 내용을 금융 전문가 시각에서 2~3문장으로 간결하게 요약해주세요.
-- 기사 문장을 그대로 복사하지 말고, 핵심 사실과 시장 영향을 자연스러운 한국어로 재구성해 주세요.
-- 숫자(금리, 환율 등 구체적인 수치)가 있으면 반드시 포함해 주세요.
-- 마크다운 문법 없이 순수 텍스트로만 작성해 주세요.
+    # 사용 가능한 컨텍스트 준비 (스크래핑 본문 우선, 없으면 RSS 발췌)
+    context = body if body else rss_desc
+    if not context:
+        return None
+
+    prompt = f"""다음은 한국 채권/외환 금융 뉴스 기사의 제목과 본문 발췌입니다.
+기사를 읽고 핵심 내용을 금융 전문가 시각에서 2~3문장으로 간결하게 재구성해 주세요.
+
+규칙:
+- 기사 문장을 그대로 복사하지 말고, 핵심 사실과 시장 영향을 자연스럽게 재구성하세요.
+- 금리, 환율, bp 등 구체적인 수치가 있으면 반드시 포함하세요.
+- 마크다운 기호(*,# 등) 없이 순수 텍스트로 작성하세요.
+- 2~3문장으로 마무리하세요.
 
 [제목] {title}
 
-[본문]
-{body}
+[본문/발췌]
+{context[:1500]}
 
 [요약]"""
 
     try:
-        response = gemini_client.models.generate_content(
-            model="gemini-1.5-flash",
-            contents=prompt
-        )
-        summary = response.text.strip()
-        return summary
+        # 429 발생 시 최대 2회 재시도 (대기 후)
+        for attempt in range(3):
+            try:
+                response = gemini_client.models.generate_content(
+                    model="gemini-2.0-flash",
+                    contents=prompt
+                )
+                summary = response.text.strip()
+                # 마크다운 기호 후처리 제거
+                summary = summary.replace('**', '').replace('##', '').replace('*', '')
+                return summary
+            except Exception as inner_e:
+                err_str = str(inner_e)
+                if '429' in err_str and attempt < 2:
+                    wait_sec = 60  # 1분 대기 후 재시도
+                    print(f"  Rate limit hit. Waiting {wait_sec}s before retry ({attempt+1}/2)...")
+                    time.sleep(wait_sec)
+                else:
+                    raise inner_e
     except Exception as e:
         print(f"  Gemini API error: {e}")
         return None
@@ -124,17 +148,21 @@ def process_news():
 
         display_date = pub_date.strftime("%m/%d %H:%M")
 
-        # 1. 기사 본문 스크래핑
-        print(f"  [{i+1}/{len(items)}] {title[:30]}...")
+        # 1. 기사 본문 스크래핑 시도 (실패해도 계속 진행)
+        print(f"  [{i+1}/{len(items)}] {title[:35]}...")
         body = scrape_article_body(link)
 
-        # 2. AI 요약 (가능한 경우) / 폴백 처리
-        if body:
-            summary = ai_summarize(title, body)
-            if not summary:
-                summary = extract_lead_sentences(body, description)
-        else:
-            summary = extract_lead_sentences("", description)
+        # RSS description 정제 (HTML 태그 제거)
+        clean_rss = re.sub(r'<[^>]+>', '', description).strip()
+
+        # 2. Gemini AI 요약 (본문 OR RSS 발췌 사용)
+        summary = ai_summarize(title, body, rss_desc=clean_rss)
+        if not summary:
+            # AI 폴백: 완결 문장 추출
+            summary = extract_lead_sentences(body, description)
+
+        # 분당 요청 제한 방지: 각 기사 처리 후 4초 대기
+        time.sleep(4)
 
         news_obj = {
             "title": title.strip(),
@@ -143,7 +171,7 @@ def process_news():
             "author": author.strip(),
             "date": display_date,
             "raw_date": pub_date,
-            "ai_generated": gemini_client is not None and bool(body)
+            "ai_generated": gemini_client is not None  # 항상 AI 시도
         }
 
         if today_0800 <= pub_date <= today_1800:
