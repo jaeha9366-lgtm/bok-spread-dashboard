@@ -2,8 +2,8 @@ name: Update Dashboard Data
 
 on:
   schedule:
-    # 18:00 KST is 09:00 UTC
-    - cron: '0 9 * * *'
+    # 06:00 KST is 21:00 UTC (prev day), 17:00 KST is 08:00 UTC
+    - cron: '0 21,8 * * *'
   workflow_dispatch: # Allows manual trigger from GitHub UI
 
 jobs:
