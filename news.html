@@ -23,11 +23,11 @@
 
         body { background-color: var(--bg-base); color: var(--text-primary); font-family: var(--font-body); min-height: 100vh; padding: 2rem 1.5rem; margin: 0; overflow-y: auto; }
         .container { max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: 2rem; }
-        
+
         header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-glow); padding-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
         .brand h1 { font-family: var(--font-display); font-size: 2.2rem; font-weight: 800; background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; }
         .brand p { color: var(--text-secondary); font-size: 0.95rem; margin-top: 0.25rem; }
-        
+
         .update-badge { background: rgba(255,255,255,0.05); border: 1px solid var(--border-glow); padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.85rem; color: var(--text-secondary); }
 
         .news-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
@@ -35,10 +35,6 @@
 
         .news-column { display: flex; flex-direction: column; gap: 1.25rem; }
         .column-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        
-        .icon-day { color: var(--color-day); font-size: 1.5rem; }
-        .icon-night { color: var(--color-night); font-size: 1.5rem; }
-        
         .column-title { font-family: var(--font-display); font-size: 1.4rem; font-weight: 700; color: var(--text-primary); }
 
         .news-card {
@@ -52,15 +48,12 @@
             position: relative;
             overflow: hidden;
         }
-        
         .news-card::before {
             content: ''; position: absolute; left: 0; top: 0; height: 100%; width: 4px;
             background: rgba(255,255,255,0.1); transition: all 0.3s;
         }
-        
         .col-day .news-card:hover::before { background: var(--color-day); }
         .col-night .news-card:hover::before { background: var(--color-night); }
-
         .news-card:hover {
             transform: translateY(-4px);
             border-color: var(--border-hover);
@@ -68,20 +61,33 @@
             background: var(--bg-card);
         }
 
-        .news-meta { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted); font-weight: 500; }
-        .news-title { font-size: 1.15rem; font-weight: 700; color: var(--text-primary); margin: 0; line-height: 1.4; transition: color 0.2s; }
+        .news-meta { display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--text-muted); font-weight: 500; flex-wrap: wrap; gap: 0.25rem; }
+        .news-title { font-size: 1.15rem; font-weight: 700; color: var(--text-primary); margin: 0; line-height: 1.4; }
         .news-card:hover .news-title { color: #e2e8f0; }
-        
-        /* Removed line-clamp to show full summary sentences */
-        .news-desc-container { background: rgba(0,0,0,0.15); padding: 1rem; border-radius: 8px; border-left: 2px solid rgba(255,255,255,0.05); }
-        .news-desc { font-size: 0.95rem; color: var(--text-secondary); margin: 0; line-height: 1.6; word-break: keep-all; }
-        
-        .news-action { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-top: 0.5rem; transition: color 0.2s; text-align: right; }
+
+        .ai-badge {
+            background: linear-gradient(135deg, rgba(168,85,247,0.2), rgba(236,72,153,0.2));
+            border: 1px solid rgba(168,85,247,0.3);
+            color: #c084fc;
+            padding: 0.1rem 0.5rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .news-desc-container {
+            background: rgba(0,0,0,0.2);
+            padding: 1rem 1.2rem;
+            border-radius: 8px;
+            border-left: 3px solid rgba(99,102,241,0.3);
+        }
+        .news-desc { font-size: 0.95rem; color: var(--text-secondary); margin: 0; line-height: 1.7; word-break: keep-all; }
+
+        .news-action { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-top: 0.25rem; transition: color 0.2s; text-align: right; }
         .col-day .news-card:hover .news-action { color: var(--color-day); }
         .col-night .news-card:hover .news-action { color: var(--color-night); }
 
         .empty-state { padding: 3rem; text-align: center; color: var(--text-muted); background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.1); }
-
     </style>
 </head>
 <body>
@@ -89,136 +95,157 @@
         <header>
             <div class="brand">
                 <h1>Bond & FX News Briefing</h1>
-                <p>연합인포맥스 주요 기사 자동 요약 (완결문)</p>
+                <p>연합인포맥스 주요 기사 · AI 핵심 요약</p>
             </div>
-            <div class="update-badge">
-                🔄 최종 업데이트: 2026-05-20 23:51 KST
-            </div>
+            <div class="update-badge">🔄 최종 업데이트: 2026-05-21 00:13 KST</div>
         </header>
 
         <div class="news-grid">
             <div class="news-column col-day">
                 <div class="column-header">
-                    <span class="icon-day">☀️</span>
+                    <span style="font-size:1.5rem;">☀️</span>
                     <span class="column-title">주간 주요 기사 (08:00 ~ 18:00)</span>
                 </div>
-                
-            <a href="https://news.einfomax.co.kr/news/articleView.html?idxno=4415978" target="_blank" class="news-card">
-                <div class="news-meta">
-                    <span class="news-date">🕒 05/20 17:50</span>
-                    <span class="news-author">✍️ 김지연 기자</span>
-                </div>
-                <h3 class="news-title">'기존의 틀'로는 어렵다…중소형증권사 품은 외시협</h3>
-                <div class="news-desc-container">
-                    <p class="news-desc">24시 거래를 앞두고 서울외환시장운영협의회(외시협)가 회원사 문턱을 낮춘 것은 비은행권의 역할이 주목받는 시대 변화에 발맞춘 행보로 풀이된다.전통적으로 은행 중심으로 운영돼 왔던 외환시장의 '논의 테이블'이 증권사와 수탁은행, 해외외국환업무취급기관(RFI), 중개사 등 비은행·비전통 참가자까지 넓어지고 있어서다.20일 금융투자업계에 따르면 최근 외시협은 회원사 가입 기준을 완화하면서 11개 기관을 신규 회원으로 받아들였다. 신규 회원은 국내은행 1곳과 외국계은행 국내 지점 3곳, 중개사 2곳, 증권사 5곳이다.중개사 1곳이 스와프</p>
-                </div>
-                <div class="news-action">기사 원문 보기 ➔</div>
-            </a>
-            
-            <a href="https://news.einfomax.co.kr/news/articleView.html?idxno=4415965" target="_blank" class="news-card">
-                <div class="news-meta">
-                    <span class="news-date">🕒 05/20 16:52</span>
-                    <span class="news-author">✍️ 손지현 기자</span>
-                </div>
-                <h3 class="news-title">이형일 재경부 차관 &quot;시장 안정 위해 6월 국고채 발행 물량 축소&quot;</h3>
-                <div class="news-desc-container">
-                    <p class="news-desc">이형일 재정경제부 1차관이 시장 안정을 위해 6월 국고채 발행 물량을 축소하겠다고 밝혔다.이 차관은 20일 국무회의에서 현안보고에 나서 "최근 국채 시장 관련해 시장 쏠림 여부를 예의주시하고 있다"며 이같이 말했다.이 차관은 "시장 안정을 위해 다음달 국고채 발행 물량을 축소해 시장 부담을 완화하겠다"며 "향후 변동성이 확대될 경우 시장 안정 조치를 적기에 시행해나가겠다"고 언급했다.세계국채지수(WGBI) 편입 이후 외국인 국고채 순매수 규모는 총 117억1천만달러(한화 17조7천억원)라고 설명했다. 이는 지난 3월 30일부터 5</p>
-                </div>
-                <div class="news-action">기사 원문 보기 ➔</div>
-            </a>
-            
-            <a href="https://news.einfomax.co.kr/news/articleView.html?idxno=4415963" target="_blank" class="news-card">
-                <div class="news-meta">
-                    <span class="news-date">🕒 05/20 16:34</span>
-                    <span class="news-author">✍️ 김학성 기자</span>
-                </div>
-                <h3 class="news-title">[뉴노멀] 환율 1,500원에 &quot;원화, 펀더멘털 대비 저평가&quot;</h3>
-                <div class="news-desc-container">
-                    <p class="news-desc">달러-원 환율 1,500원이 '뉴노멀(새로운 표준)'로 자리 잡는 것일까. 환율이 한 달여 만에 다시 1,500원을 웃돌면서 이 같은 시각이 고개를 들고 있다.다만 전문가들은 최근의 환율 급등을 쏠림의 결과로 해석하면서 일시적으로 중첩된 악재들이 해소되면 환율이 하향 안정화할 것으로 예상했다.20일 서울외환시장에서 달러-원은 1,500원대에서 거래되고 있다. 이날 오전 한때 1,513.40원을 기록하면서 4월 2일 이후 최고치를 찍었다.지난 7일 1,440원대까지 내렸던 환율은 이후 외국인 대규모 주식 매도의 영향으로 가파르게 올</p>
-                </div>
-                <div class="news-action">기사 원문 보기 ➔</div>
-            </a>
-            
-            <a href="https://news.einfomax.co.kr/news/articleView.html?idxno=4415962" target="_blank" class="news-card">
-                <div class="news-meta">
-                    <span class="news-date">🕒 05/20 16:34</span>
-                    <span class="news-author">✍️ 손지현 기자</span>
-                </div>
-                <h3 class="news-title">[뉴노멀] 당분간 주인공은 국고채 30년물…대외·수급에 시선집중</h3>
-                <div class="news-desc-container">
-                    <p class="news-desc">최근 서울채권시장의 주인공으로 국고채 30년물이 급부상하고 있다.주요국의 재정 확대 우려로 글로벌 장기금리가 급격한 변동성을 보이면서 국고채 30년물도 직접적인 영향권 아래에 놓여있다.최근 일본 및 영국의 장기금리는 약 30년 만에 최고 수준에 도달했으며, 전일 미국 국채 30년물 금리는 19년 만에 가장 높았다.이같은 대외 환경에 더해 보험사 등 최종수요자(엔드)의 수요도 예전만큼 강하지 않은 것으로 나타나면서 앞으로 발행 규모나 비중에 변화가 감지될지도 관건이다.20일 채권시장에 따르면 국고채 30년물 지표물인 26-2호 금리</p>
-                </div>
-                <div class="news-action">기사 원문 보기 ➔</div>
-            </a>
-            
-            <a href="https://news.einfomax.co.kr/news/articleView.html?idxno=4415956" target="_blank" class="news-card">
-                <div class="news-meta">
-                    <span class="news-date">🕒 05/20 16:26</span>
-                    <span class="news-author">✍️ 노현우 기자</span>
-                </div>
-                <h3 class="news-title">삼성전자 호재 유효할까…운용사 장기물 트레이딩 주시</h3>
-                <div class="news-desc-container">
-                    <p class="news-desc">최근 장기 국고채를 대거 매수한 주체로 삼성전자 퇴직연금이 추정되는 가운데, 채권시장은 추가 매수 여부에 촉각을 곤두세우고 있다. '현금 부자' 삼성전자는 경제, 산업은 물론 채권시장에서 부쩍 존재감을 키우고 있다.중동 전쟁과 이에 따른 인플레이션 우려, 기준금리 인상 등 약세 재료가 우위를 점하고 있는 상황에서 강세 재료가 유효한지 따져보는 셈이다.20일 채권시장에 따르면 운용사로 분류되는 계정은 전일 2035년 12월10일 만기인 국고채 10년물(25-11호)을 9천560억 원 순매수했다.글로벌 장기 국채 금리가 급등하고, 국</p>
-                </div>
-                <div class="news-action">기사 원문 보기 ➔</div>
-            </a>
-            
-            <a href="https://news.einfomax.co.kr/news/articleView.html?idxno=4415946" target="_blank" class="news-card">
-                <div class="news-meta">
-                    <span class="news-date">🕒 05/20 16:04</span>
-                    <span class="news-author">✍️ 이민재 기자</span>
-                </div>
-                <h3 class="news-title">[도쿄환시] 달러-엔, 당국 개입 경계감에 158엔대로 소폭 하락</h3>
-                <div class="news-desc-container">
-                    <p class="news-desc">20일 도쿄환시에서 달러-엔 환율이 장중 159엔을 뚫고 올랐다가 일본 당국의 개입 경계감에 158대로 내려왔다.연합인포맥스(화면번호 6411)에 따르면 달러-엔 환율은 오후 1시 55분 기준 전장 대비 0.03% 하락한 158.960엔에 거래됐다.전날 159엔대를 맛본 달러-엔은 이날 장 초반에도 159엔을 재차 상향 돌파했다.국제유가 상승에 따른 일본의 무역수지 악화 우려와 추가경정예산 편성에 따른 재정확대 전망이 꾸준히 엔화에 부담 요인으로 작용했다.다만 일본 정부와 일본은행(BOJ)의 엔화 매수 개입에 대한 기대가 엔화 가</p>
-                </div>
-                <div class="news-action">기사 원문 보기 ➔</div>
-            </a>
-            
-            <a href="https://news.einfomax.co.kr/news/articleView.html?idxno=4415940" target="_blank" class="news-card">
-                <div class="news-meta">
-                    <span class="news-date">🕒 05/20 15:36</span>
-                    <span class="news-author">✍️ 정선미 기자</span>
-                </div>
-                <h3 class="news-title">주금공 MBS 발행에 1천200억 미매각…&quot;중장기물 수요 취약&quot;</h3>
-                <div class="news-desc-container">
-                    <p class="news-desc">글로벌 초장기 금리 급등 속에 주택저당증권(MBS)도 구간을 가리지 않고 미매각이 발생하면서 취약한 시장 심리를 반영했다.20일 채권시장에 따르면 이날 주택금융공사가 실시한 MBS 입찰에서 2년과 3년물을 제외한 구간에서 응찰금액이 발행규모에 미달하는 미매각이 나왔다.1년물은 당초 700억원을 발행할 예정이었으나 응찰액이 600억원에 그쳐 100억원이 미매각됐다.2년물과 3년물은 그러나 각각 1천100억원씩 발행에 응찰액이 2천500억원, 1천800억원이 몰려 미매각을 피했다.그러나 7년물 발행에는 1천200억원 발행에 900억원</p>
-                </div>
-                <div class="news-action">기사 원문 보기 ➔</div>
-            </a>
-            
-            <a href="https://news.einfomax.co.kr/news/articleView.html?idxno=4415938" target="_blank" class="news-card">
-                <div class="news-meta">
-                    <span class="news-date">🕒 05/20 15:34</span>
-                    <span class="news-author">✍️ 노현우 기자</span>
-                </div>
-                <h3 class="news-title">'매수 파업' 속 단번에 국고채 10년물 1조 매수…삼성전자 퇴직연금 추정</h3>
-                <div class="news-desc-container">
-                    <p class="news-desc">'매수 파업'이라는 말이 나올 정도로 채권시장이 약세를 거듭하는 가운데 1조원 규모 자금이 한꺼번에 대거 유입돼 눈길을 끈다. 매수 채권의 만기, 종목, 거래 시기를 보면 삼성전자 퇴직연금 자금일 가능성이 크다는 평가가 제기된다.20일 채권시장에 따르면 운용사로 분류되는 계정은 전일 2035년 12월10일 만기인 국고채 10년물(25-11호)을 9천560억 원 순매수했다.앞서 삼성생명은 지난 6일 삼성자산운용과 수익증권 거래 사실을 공시한 바 있다. 총 4조500억원 규모 퇴직연금 신탁 계좌의 상품 매매를 목적으로 명시했다.삼성생</p>
-                </div>
-                <div class="news-action">기사 원문 보기 ➔</div>
-            </a>
-            
-            <a href="https://news.einfomax.co.kr/news/articleView.html?idxno=4415935" target="_blank" class="news-card">
-                <div class="news-meta">
-                    <span class="news-date">🕒 05/20 15:30</span>
-                    <span class="news-author">✍️ 고유권 기자</span>
-                </div>
-                <h3 class="news-title">'영업이익 N% 성과급' 비판한 李대통령…'잔여재산청구권' 논의 촉발하나</h3>
-                <div class="news-desc-container">
-                    <p class="news-desc">성과급 규모를 둘러싸고 삼성전자 노사 간 협상이 사실상 결렬돼 노조의 총파업이 임박한 가운데, 이재명 대통령이 노조의 요구가 부당하다는 취지로 비판하면서 정부가 긴급조정권 발동 등을 통한 적극적 개입에 나설 가능성이 커지고 있다.정부가 중앙노동위원회 사후 조정을 통해 노사 간 입장차를 좁히려고 노력했음에도 노조 측이 완강한 버티기에 들어가면서 상황을 파국으로 몰아가고 있다는 인식이 깔린 것으로 보인다.이 대통령은 20일 청와대에서 주재한 국무회의에서 삼성전자 노조를 겨냥한 듯 "사회 구성원들은 적정한 선을 잘 지켜야 하고, 그 선</p>
-                </div>
-                <div class="news-action">기사 원문 보기 ➔</div>
-            </a>
-            
+                <div class='empty-state'>해당 시간대에 기사가 없습니다.</div>
             </div>
-            
             <div class="news-column col-night">
                 <div class="column-header">
-                    <span class="icon-night">🌙</span>
+                    <span style="font-size:1.5rem;">🌙</span>
                     <span class="column-title">야간 주요 기사 (전일 18:00 ~ 08:00)</span>
                 </div>
-                <div class='empty-state'>해당 시간대에 기사가 없습니다.</div>
+                
+            <a href="https://news.einfomax.co.kr/news/articleView.html?idxno=4415999" target="_blank" class="news-card">
+                <div class="news-meta">
+                    <span class="news-date">🕒 05/20 23:28</span>
+                    <span class="news-author">✍️ 윤정원 기자 </span>
+                </div>
+                <h3 class="news-title">달러-원, 뉴욕장서 1,510원 선 밑돌아</h3>
+                <div class="news-desc-container">
+                    <p class="news-desc">달러-원 환율이 뉴욕장에서 1,510원 선보다 아래에서 거래됐다.20일 외환시장에서 달러-원 환율은 오후 9시 22분 현재 전장 대비 1.90원 오른 1,505.90원으로 나타났다.이날 달러-원 환율은 전장 대비 1.00원 밀린 1,506.80원에 정규장 거래를 마쳤다.외국인이 이날 국내 주식을 2조9천억원 순매도한 점이 달러-원 환율을 밀어 올렸다.다만 상단에서 수출업체 네고 물량이 유입된 데다 외환 당국의 구두 개입성 메시지가 나온 점은 환율 상단을 제한했다.이날 허장 재정경제부 2차관은 정부서울청사에서 주재한 외환시장 간담회</p>
+                </div>
+                <div class="news-action">기사 원문 보기 ➔</div>
+            </a>
+            
+            <a href="https://news.einfomax.co.kr/news/articleView.html?idxno=4415998" target="_blank" class="news-card">
+                <div class="news-meta">
+                    <span class="news-date">🕒 05/20 23:01</span>
+                    <span class="news-author">✍️ 최진우 기자 </span>
+                </div>
+                <h3 class="news-title">英 국채금리 급락…물가 안도감에 2년물 11bp↓</h3>
+                <div class="news-desc-container">
+                    <p class="news-desc">영국 국채 금리가 단기물을 중심으로 하락했다.영국의 소비자물가지수(CPI)가 시장 전망치를 대폭 밑돌면서 영국 중앙은행인 잉글랜드 은행(BOE)의 정책금리 인상 기대감이 후퇴했기 때문이다.20일(현지시간) 연합인포맥스 해외금리 현재가(화면번호 6531)를 보면 영국 국채 2년물 금리는 이날 오전 7시 51분 현재 전장보다 10.73bp 급락한 4.4072%에 거래되고 있다.1년물과 30년물은 각각 7.37bp, 6.08bp 떨어졌다.이날 영국 통계청(ONS)에 따르면 4월 CPI는 지난해 같은 기간보다 2.8% 상승했다.시장 전망</p>
+                </div>
+                <div class="news-action">기사 원문 보기 ➔</div>
+            </a>
+            
+            <a href="https://news.einfomax.co.kr/news/articleView.html?idxno=4415996" target="_blank" class="news-card">
+                <div class="news-meta">
+                    <span class="news-date">🕒 05/20 22:35</span>
+                    <span class="news-author">✍️ 최진우 기자 </span>
+                </div>
+                <h3 class="news-title">이란軍 &quot;미국, 다시 이란 공격하면 전쟁은 중동 넘어 확산할 것&quot;</h3>
+                <div class="news-desc-container">
+                    <p class="news-desc">이란군은 20일(현지시간) 미국이나 이스라엘이 다시 자국을 상대로 공격을 재개할 경우 중동을 넘어 보복하겠다고 경고했다.이란 이슬람혁명수비대(IRGC)는 이날 성명에서 "반복된 크고 전략적인 패배들에서 교훈을 얻지 못하고, 다시 위협의 언어를 꺼내든 미국과 시온주의자(이스라엘) 적들은 알아야 한다"고 했다.IRGC는 "그들은 세계에서 가장 비용이 많이 드는 두 군대의 모든 역량을 동원해 우리를 공격했지만, 우리는 혁명 이슬람의 모든 역량을 그들에 맞서 사용하지 않았다"고 설명했다.그러면서 "만약 이란에 대한 침략이 다시 반복된다면</p>
+                </div>
+                <div class="news-action">기사 원문 보기 ➔</div>
+            </a>
+            
+            <a href="https://news.einfomax.co.kr/news/articleView.html?idxno=4415995" target="_blank" class="news-card">
+                <div class="news-meta">
+                    <span class="news-date">🕒 05/20 22:30</span>
+                    <span class="news-author">✍️ 윤정원 기자 </span>
+                </div>
+                <h3 class="news-title">유로존 4월 CPI 확정치 3% 상승…예비치 부합</h3>
+                <div class="news-desc-container">
+                    <p class="news-desc">유로존의 4월 소비자물가지수(CPI) 확정치가 예비치에 부합했다.20일(현지시간) 유럽연합(EU) 통계 당국인 유로스타트에 따르면 4월 CPI 확정치는 지난해 같은 기간보다 3.0% 올랐다.이는 예비치 3.0%에 부합하는 수준이다. 전월치 2.6%보다는 높았다.변동성이 큰 식품, 에너지, 주류, 담배를 제외해 물가의 기조적 흐름을 보여주는 근원물가의 상승률은 2.2%로 나타났다.</p>
+                </div>
+                <div class="news-action">기사 원문 보기 ➔</div>
+            </a>
+            
+            <a href="https://news.einfomax.co.kr/news/articleView.html?idxno=4415990" target="_blank" class="news-card">
+                <div class="news-meta">
+                    <span class="news-date">🕒 05/20 19:11</span>
+                    <span class="news-author">✍️ 이민재 기자 </span>
+                </div>
+                <h3 class="news-title">인도네시아, 통화약세에 기준금리 50bp 인상…예상보다 큰 폭(상보)</h3>
+                <div class="news-desc-container">
+                    <p class="news-desc">인도네시아 중앙은행이 자국 통화인 루피아 가치를 방어하기 위해 예상을 웃도는 폭으로 기준금리를 인상했다.인도네시아 중앙은행은 20일 기준금리를 50bp 올린 5.25%로 결정했다.당초 시장에서는 중앙은행이 금리를 25bp 인상하거나 동결할 것으로 내다봤다.이달 초 루피아 가치가 연속으로 저점을 경신한 데 따라 중앙은행이 화폐 가치 방어에 힘을 보태려 한 것으로 풀이된다.상대적으로 통제된 인플레이션과 경제 성장 지원을 필요로 하는 상황에서 중앙은행이 이전까지 금리 인상을 꺼려왔지만 지속적인 루피아 약세로 선택지가 좁아지고 있다는 평</p>
+                </div>
+                <div class="news-action">기사 원문 보기 ➔</div>
+            </a>
+            
+            <a href="https://news.einfomax.co.kr/news/articleView.html?idxno=4415989" target="_blank" class="news-card">
+                <div class="news-meta">
+                    <span class="news-date">🕒 05/20 18:49</span>
+                    <span class="news-author">✍️ 김정현 기자 </span>
+                </div>
+                <h3 class="news-title">IRS 금리 단기 상승·장기 하락…커브 플랫</h3>
+                <div class="news-desc-container">
+                    <p class="news-desc">IRS 금리가 단기 구간에서는 상승하고 장기 구간에서는 소폭 하락했다. 수익률곡선은 평탄해졌다(커브 플랫).20일 서울 채권시장에 따르면 1년 IRS 금리는 오후 4시 27분 기준 전 거래일 대비 1.00bp 상승한 3.3425%를 기록했다.2년은 1.75bp, 3년은 1.25bp 올랐다.5년은 전일과 동일한 3.9550%를 기록했다.</p>
+                </div>
+                <div class="news-action">기사 원문 보기 ➔</div>
+            </a>
+            
+            <a href="https://news.einfomax.co.kr/news/articleView.html?idxno=4415987" target="_blank" class="news-card">
+                <div class="news-meta">
+                    <span class="news-date">🕒 05/20 18:48</span>
+                    <span class="news-author">✍️ 이장원 기자 </span>
+                </div>
+                <h3 class="news-title">인플레 공포에도 '잠잠'…기능 상실한 美 물가채의 역설</h3>
+                <div class="news-desc-container">
+                    <p class="news-desc">전 세계적으로 국채 금리가 역대 최고치로 치솟으며 채권시장이 뜨겁게 요동치고 있다.미국 10년물 국채 금리가 장중 4.6%선을 뚫고 30년물 금리는 5%를 넘어섰으며 일본과 영국의 장기 국채 금리도 연일 사상 최고치를 경신 중이다.이러한 채권시장의 공포를 자극하는 실체는 인플레이션이다.뱅크오브아메리카(BofA)가 시행한 글로벌 펀드매니저 설문조사에 따르면, 응답자의 40%가 시장의 가장 큰 꼬리 위험(Tail risk)으로 '인플레이션 파동'을 꼽았다.19일(현지 시각) 영국 이코노미스트지에 따르면, 물가 상승 우려가 팽배함에도</p>
+                </div>
+                <div class="news-action">기사 원문 보기 ➔</div>
+            </a>
+            
+            <a href="https://news.einfomax.co.kr/news/articleView.html?idxno=4415988" target="_blank" class="news-card">
+                <div class="news-meta">
+                    <span class="news-date">🕒 05/20 18:48</span>
+                    <span class="news-author">✍️ 노현우 기자 </span>
+                </div>
+                <h3 class="news-title">[채권-마감] 장기 금리 하락…환율 안정·당국 국채 발행 축소 발언</h3>
+                <div class="news-desc-container">
+                    <p class="news-desc">국고채 금리가 20일 장기 중심으로 하락했다.환율 오름세가 진정되고, 일본 장기 국채 입찰이 호조를 보이는 등 대외 분위기가 우호적으로 돌아선 가운데 국채 당국이 내달 국고채 발행 규모 축소 계획을 재확인한 데 따른 영향이다.삼성전자 파업 소식과 삼성전자 퇴직연금 자금이 장기 국고채를 사들였단 소식도 일부 강세 재료로 작용했다는 평가가 나왔다.채권시장에 따르면 국고채 3년물 최종호가 수익률은 전장 대비 0.9bp 상승한 3.760%였다. 10년물은 1.2bp 내려 4.198%를 나타냈다.</p>
+                </div>
+                <div class="news-action">기사 원문 보기 ➔</div>
+            </a>
+            
+            <a href="https://news.einfomax.co.kr/news/articleView.html?idxno=4415985" target="_blank" class="news-card">
+                <div class="news-meta">
+                    <span class="news-date">🕒 05/20 18:26</span>
+                    <span class="news-author">✍️ 김학성 기자 </span>
+                </div>
+                <h3 class="news-title">FX스와프, 금리차 확대에 장기물 중심 하락</h3>
+                <div class="news-desc-container">
+                    <p class="news-desc">외환(FX) 스와프포인트가 금리차 확대 영향에 장기물을 중심으로 하락했다.20일 외화자금시장에서 1년 만기 FX스와프포인트는 시초가 대비 0.10원 하락한 -14.70원에 마감했다.6개월물은 시초가 대비 0.10원 하락한 -8.00원, 3개월물은 0.05원 하락한 -4.05원에 거래를 마쳤다.1개월물은 시초가와 같은 -1.40원에 마감했다.초단기물인 오버나이트(O/N)는 -0.060원, 탐넥(T/N·tomorrow and next)은 -0.060원에 마감했다.미국 금리 상승으로 금리차가 벌어지며 스와프포인트는 하락 압력을 받았다.</p>
+                </div>
+                <div class="news-action">기사 원문 보기 ➔</div>
+            </a>
+            
+            <a href="https://news.einfomax.co.kr/news/articleView.html?idxno=4415984" target="_blank" class="news-card">
+                <div class="news-meta">
+                    <span class="news-date">🕒 05/20 18:20</span>
+                    <span class="news-author">✍️ 신윤우 기자 </span>
+                </div>
+                <h3 class="news-title">[외환-마감] 외인 주식 투매에도 소폭 하락…1,500원대서 숨고르기</h3>
+                <div class="news-desc-container">
+                    <p class="news-desc">달러-원 환율이 외국인 투자자의 계속되는 주식 투매에도 소폭 하락했다.강달러 흐름이 다소 주춤한 가운데 단기 고점 인식으로 추가적인 상승 시도가 제한됐다.20일 서울 외환시장에서 오후 3시 30분 현재 달러-원 환율은 전장 대비 1.00원 밀린 1,506.80원에 거래됐다.달러-원은 전날 대비 1.20원 높은 1,509.00원으로 출발한 직후 1,513.40원까지 상승했다.고점을 확인한 뒤 방향을 틀어 1,503.80원까지 떨어졌다가 다시 상승 전환했으나 서울장 마감을 앞두고 하락세로 돌아섰다.상하방 요인이 교차해 달러-원이 등락</p>
+                </div>
+                <div class="news-action">기사 원문 보기 ➔</div>
+            </a>
+            
+            <a href="https://news.einfomax.co.kr/news/articleView.html?idxno=4415983" target="_blank" class="news-card">
+                <div class="news-meta">
+                    <span class="news-date">🕒 05/20 18:18</span>
+                    <span class="news-author">✍️ 박준형 기자 </span>
+                </div>
+                <h3 class="news-title">[1년 성과보고] 기획처 &quot;적극재정 경기회복 견인…지출구조조정 역대 최대&quot;</h3>
+                <div class="news-desc-container">
+                    <p class="news-desc">기획예산처가 이재명 정부 출범 이후 1년간 적극적인 재정 운용을 통해 경기 회복을 견인하고, 강도 높은 지출구조조정으로 지속가능한 재정 기반을 강화했다고 자평했다.박홍근 기획처 장관은 20일 청와대 본관 세종실에서 열린 국무회의에서 이 같은 내용의 '이재명 정부 출범 1주년 핵심성과'를 보고했다.기획처는 지난 1년간 두 차례의 추가경정예산을 편성해 경기 회복과 민생 안정을 지원했다고 설명했다.정부 출범 직후인 지난해 7월 편성한 첫 번째 추경은 4분기 연속 0%대 성장률이 이어지는 상황에서 마련됐다.기획처는 전국민 민생회복 소비쿠</p>
+                </div>
+                <div class="news-action">기사 원문 보기 ➔</div>
+            </a>
+            
             </div>
         </div>
     </div>

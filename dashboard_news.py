@@ -4,16 +4,18 @@ from datetime import datetime, timedelta
 import re
 from bs4 import BeautifulSoup
 import os
-import google.generativeai as genai
+from dotenv import load_dotenv
+from google import genai
+
+# .env 파일 로드
+load_dotenv()
 
 # Gemini API 초기화
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-gemini_available = False
+gemini_client = None
 if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
-    gemini_model = genai.GenerativeModel("gemini-1.5-flash")
-    gemini_available = True
-    print("Gemini API initialized successfully.")
+    gemini_client = genai.Client(api_key=GEMINI_API_KEY)
+    print("Gemini API (google.genai) initialized successfully.")
 else:
     print("Warning: GEMINI_API_KEY not found. Falling back to text extraction mode.")
 
@@ -38,7 +40,7 @@ def scrape_article_body(url):
 
 def ai_summarize(title, body):
     """Gemini API를 활용해 기사 제목과 본문을 읽고 핵심 내용을 2~3문장으로 요약합니다."""
-    if not gemini_available:
+    if not gemini_client:
         return None
 
     prompt = f"""다음은 한국 채권/외환 금융 뉴스 기사입니다. 기사의 핵심 내용을 금융 전문가 시각에서 2~3문장으로 간결하게 요약해주세요.
@@ -54,7 +56,10 @@ def ai_summarize(title, body):
 [요약]"""
 
     try:
-        response = gemini_model.generate_content(prompt)
+        response = gemini_client.models.generate_content(
+            model="gemini-1.5-flash",
+            contents=prompt
+        )
         summary = response.text.strip()
         return summary
     except Exception as e:
@@ -138,7 +143,7 @@ def process_news():
             "author": author.strip(),
             "date": display_date,
             "raw_date": pub_date,
-            "ai_generated": gemini_available and bool(body)
+            "ai_generated": gemini_client is not None and bool(body)
         }
 
         if today_0800 <= pub_date <= today_1800:
