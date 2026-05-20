@@ -30,6 +30,7 @@ jobs:
       - name: Run spread.py script
         env:
           BOK_API_KEY: ${{ secrets.BOK_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: uv run spread.py
 
       - name: Commit and push changes
