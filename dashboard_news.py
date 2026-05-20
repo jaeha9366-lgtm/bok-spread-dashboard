@@ -126,9 +126,13 @@ def process_news():
     today_0800 = now.replace(hour=8, minute=0, second=0, microsecond=0)
     today_1800 = now.replace(hour=18, minute=0, second=0, microsecond=0)
     yesterday_1800 = today_1800 - timedelta(days=1)
+    yesterday_0800 = today_0800 - timedelta(days=1)
+    day_before_yesterday_1800 = yesterday_1800 - timedelta(days=1)
 
     daytime_news = []
     nighttime_news = []
+    prev_daytime_news = []
+    prev_nighttime_news = []
     other_news = []
 
     items = root.findall('.//item')
@@ -178,14 +182,29 @@ def process_news():
             daytime_news.append(news_obj)
         elif yesterday_1800 <= pub_date < today_0800:
             nighttime_news.append(news_obj)
+        elif yesterday_0800 <= pub_date < yesterday_1800:
+            prev_daytime_news.append(news_obj)
+        elif day_before_yesterday_1800 <= pub_date < yesterday_0800:
+            prev_nighttime_news.append(news_obj)
         else:
             other_news.append(news_obj)
 
     daytime_news.sort(key=lambda x: x['raw_date'], reverse=True)
     nighttime_news.sort(key=lambda x: x['raw_date'], reverse=True)
+    prev_daytime_news.sort(key=lambda x: x['raw_date'], reverse=True)
+    prev_nighttime_news.sort(key=lambda x: x['raw_date'], reverse=True)
     other_news.sort(key=lambda x: x['raw_date'], reverse=True)
 
+    if len(daytime_news) == 0:
+        print("최근 주간 뉴스가 없어 전일 주간 뉴스를 사용합니다.")
+        daytime_news = prev_daytime_news
+    if len(nighttime_news) == 0:
+        print("최근 야간 뉴스가 없어 전일 야간 뉴스를 사용합니다.")
+        nighttime_news = prev_nighttime_news
+
+    # 만약 전일 데이터도 없다면 (RSS 피드가 짧은 경우 등)
     if len(daytime_news) == 0 and len(nighttime_news) == 0:
+        print("최근 및 전일 뉴스가 없어 전체 최신 뉴스를 사용합니다.")
         half = len(other_news) // 2
         daytime_news = other_news[:half]
         nighttime_news = other_news[half:]
