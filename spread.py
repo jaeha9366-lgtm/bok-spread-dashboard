@@ -4,6 +4,8 @@ import csv
 import requests
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
+import dashboard_exchange
+
 
 # Load environment variables from .env file
 load_dotenv()
@@ -294,11 +296,66 @@ def main():
         f.write(html_content)
     print(f"Successfully created premium dashboard in '{html_file}'.")
 
-    # Also synchronize to index.html
-    index_file = "index.html"
-    with open(index_file, "w", encoding="utf-8") as f:
-        f.write(html_content)
-    print(f"Successfully synchronized premium dashboard to '{index_file}'.")
+    # Generate Shell index.html
+    generate_shell_index_html()
+    print(f"Successfully generated shell navigation dashboard 'index.html'.")
+    
+    # Process Exchange Rates (generates exchange.html, csv, xlsx)
+    dashboard_exchange.process_exchange_rates(api_key)
+
+def generate_shell_index_html():
+    html = """<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>한국은행 금융/경제 통합 대시보드</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #05070a;
+            --border-glow: rgba(99, 102, 241, 0.2);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --font-display: 'Outfit', sans-serif;
+            --font-body: 'Inter', sans-serif;
+        }
+        body, html { margin: 0; padding: 0; height: 100vh; background-color: var(--bg-base); color: var(--text-primary); font-family: var(--font-body); overflow: hidden; display: flex; flex-direction: column; }
+        nav { display: flex; justify-content: center; align-items: center; gap: 1rem; padding: 1.2rem; background: rgba(13, 18, 30, 0.95); border-bottom: 1px solid var(--border-glow); backdrop-filter: blur(10px); z-index: 100; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+        .nav-title { font-family: var(--font-display); font-size: 1.5rem; font-weight: 800; background: linear-gradient(135deg, #a855f7, #3b82f6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-right: 2rem; letter-spacing: -0.03em;}
+        .tab { background: transparent; border: 1px solid rgba(255,255,255,0.1); color: var(--text-secondary); padding: 0.65rem 1.4rem; border-radius: 8px; font-family: var(--font-body); font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 0.5rem; }
+        .tab:hover { background: rgba(255,255,255,0.05); color: var(--text-primary); border-color: rgba(255,255,255,0.2); }
+        .tab.active { background: rgba(99, 102, 241, 0.15); border-color: #818cf8; color: #818cf8; box-shadow: 0 0 20px rgba(99, 102, 241, 0.15); }
+        iframe { flex: 1; width: 100%; border: none; background: var(--bg-base); }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="nav-title">BOK Analytics Platform</div>
+        <button class="tab active" onclick="switchTab('spread.html', this)">📊 주요 채권 금리 및 스프레드</button>
+        <button class="tab" onclick="switchTab('exchange.html', this)">💵 원/달러 환율 추이</button>
+    </nav>
+    <iframe id="content-frame" src="spread.html"></iframe>
+    <script>
+        function switchTab(url, btn) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            btn.classList.add('active');
+            
+            const frame = document.getElementById('content-frame');
+            frame.style.opacity = 0;
+            setTimeout(() => {
+                frame.src = url;
+                frame.onload = () => {
+                    frame.style.transition = 'opacity 0.4s ease';
+                    frame.style.opacity = 1;
+                };
+            }, 100);
+        }
+    </script>
+</body>
+</html>"""
+    with open("index.html", "w", encoding="utf-8") as f:
+        f.write(html)
 
 def get_html_template(data_list, stats):
     data_json = json.dumps(data_list)
