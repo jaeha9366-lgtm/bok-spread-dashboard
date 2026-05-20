@@ -471,6 +471,7 @@ def get_html_template(data_list, stats):
         .anomaly-text {{
             font-weight: 400;
             color: var(--text-secondary);
+            width: 100%;
         }}
 
         .anomaly-text b {{
@@ -1226,9 +1227,39 @@ def get_html_template(data_list, stats):
         bannerEl.style.backgroundColor = glowColor;
         bannerEl.style.borderColor = borderColor;
         
+        // Calculate all bond spread divergences (latest_spread - avg_spread)
+        const tbDivergence = stats.tb.latest_spread - stats.tb.avg_spread;
+        const corpDivergence = stats.corp.latest_spread - stats.corp.avg_spread;
+        const indDivergence = stats.ind.latest_spread - stats.ind.avg_spread;
+        const msbDivergence = stats.msb.latest_spread - stats.msb.avg_spread;
+
+        const formatDiv = (name, val) => {{
+            const sign = val >= 0 ? '+' : '';
+            const color = val >= 0 ? 'var(--color-danger)' : 'var(--color-treasury)';
+            return `<span style="white-space: nowrap;">${{name}}: <b style="color: ${{color}}; font-weight: 600;">${{sign}}${{val.toFixed(2)}}%p</b></span>`;
+        }};
+
+        const allDivergencesText = [
+            formatDiv('국고채 3년', tbDivergence),
+            formatDiv('회사채 3년', corpDivergence),
+            formatDiv('산금채 1년', indDivergence),
+            formatDiv('통안증권 1년', msbDivergence)
+        ].join(' <span style="color: var(--text-muted); margin: 0 0.5rem;">|</span> ');
+
+        const highlightColor = anomaly.diff >= 0 ? 'var(--color-danger)' : 'var(--color-treasury)';
+
         document.getElementById('anomalyText').innerHTML = `
-            5개년 스프레드 평균 대비 현재 가장 큰 괴리를 보이는 채권은 <b style="color:${{activeColor}}; font-weight:700">${{anomaly.name}}</b> 입니다. 
-            (최근 스프레드 <b>${{anomaly.latest.toFixed(2)}}%p</b> vs 5개년 평균 <b>${{anomaly.avg.toFixed(2)}}%p</b> | 괴리폭: <b style="color:${{anomaly.diff >= 0 ? 'var(--color-danger)' : 'var(--color-treasury)'}}; font-weight:700">${{diffSign}}${{anomaly.diff.toFixed(2)}}%p</b>)
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; width: 100%; gap: 1rem;">
+                <div style="font-size: 0.85rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.25rem; flex-wrap: wrap;">
+                    <span style="font-weight: 600; color: var(--text-muted); margin-right: 0.25rem;">[채권별 스프레드 괴리율]</span>
+                    ${{allDivergencesText}}
+                </div>
+                <div style="font-size: 0.95rem; font-weight: 800; color: var(--text-primary); background: rgba(255,255,255,0.02); padding: 0.35rem 0.85rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; gap: 0.35rem;">
+                    🚨 <span style="font-weight: 500; color: var(--text-secondary);">최대 괴리:</span> 
+                    <span style="color: ${{activeColor}}; font-size: 1.05rem; font-weight: 900; text-shadow: 0 0 10px ${{activeColor}}50;">${{anomaly.name}}</span>
+                    <span style="font-size: 0.85rem; font-weight: 500; color: var(--text-muted); margin-left: 0.25rem;">(괴리폭: <b style="color: ${{highlightColor}}; font-weight: 800;">${{diffSign}}${{anomaly.diff.toFixed(2)}}%p</b>)</span>
+                </div>
+            </div>
         `;
 
         // --- Chart Configuration & Multi-Mode Logic ---
