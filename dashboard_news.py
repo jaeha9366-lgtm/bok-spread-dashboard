@@ -2,9 +2,53 @@ import requests
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
 import re
+from bs4 import BeautifulSoup
+
+def summarize_article(url, fallback_text):
+    """
+    기사 원문 링크(url)에 접속하여 본문을 스크래핑한 뒤,
+    첫 2~3개의 완전한 문장으로 요약하여 반환합니다.
+    크롤링 실패 시 fallback_text(RSS description)를 반환합니다.
+    """
+    try:
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+        resp = requests.get(url, headers=headers, timeout=5)
+        if resp.status_code == 200:
+            soup = BeautifulSoup(resp.content, 'html.parser')
+            
+            # 연합인포맥스 기사 본문 div 추출
+            article_div = soup.find('div', id='article-view-content-div')
+            if article_div:
+                paragraphs = article_div.find_all('p')
+                text = " ".join([p.get_text(strip=True) for p in paragraphs if p.get_text(strip=True)])
+                if not text:
+                    text = article_div.get_text(separator=" ", strip=True)
+                
+                # 기자 이메일, 불필요한 문구 등을 필터링하며 문장 쪼개기
+                sentences = [s.strip() + "." for s in text.split(". ") if s.strip()]
+                
+                # 핵심 리드문(처음 2~3문장) 결합
+                # 기사 첫 문단이 보통 가장 중요하므로 앞의 2문장을 취함. 
+                # 합쳐서 너무 짧으면(100자 이하) 3문장까지 취함.
+                if len(sentences) >= 1:
+                    summary = sentences[0]
+                    if len(sentences) > 1:
+                        summary += " " + sentences[1]
+                    if len(summary) < 100 and len(sentences) > 2:
+                        summary += " " + sentences[2]
+                        
+                    # 괄호(기자 이름 등) 시작 부분 제거 등 추가 클리닝
+                    summary = re.sub(r'^\([^\)]+\)\s*', '', summary)
+                    return summary
+    except Exception as e:
+        print(f"Scraping error for {url}: {e}")
+        
+    # 스크래핑 실패 시 기존처럼 정제만 해서 리턴
+    clean_fallback = re.sub(r'<[^>]+>', '', fallback_text).strip()
+    return clean_fallback
 
 def process_news():
-    print("\n--- 채권/외환 뉴스 RSS 피드 수집 시작 ---")
+    print("\n--- 채권/외환 뉴스 RSS 피드 수집 및 요약 시작 ---")
     url = "https://news.einfomax.co.kr/rss/S1N16.xml"
     try:
         response = requests.get(url, timeout=15)
@@ -20,25 +64,17 @@ def process_news():
         print(f"Error parsing XML: {e}")
         return
 
-    # 현재 시간을 기준으로 오늘과 어제 날짜 계산
     now = datetime.now()
-    
-    # 만약 오후 6시 이전(00:00~18:00)에 실행된다면, '오늘'의 주간은 아직 진행중이다.
-    # 스케줄러가 매일 18:00에 돈다고 가정하면, 
-    # - 주간(Daytime): 오늘 08:00:00 ~ 18:00:00
-    # - 야간(Nighttime): 어제 18:00:00 ~ 오늘 08:00:00
-    # 이렇게 나누는 것이 가장 직관적.
-    
     today_0800 = now.replace(hour=8, minute=0, second=0, microsecond=0)
     today_1800 = now.replace(hour=18, minute=0, second=0, microsecond=0)
     yesterday_1800 = today_1800 - timedelta(days=1)
     
     daytime_news = []
     nighttime_news = []
-    other_news = [] # 기준 밖의 과거 뉴스
+    other_news = []
     
     items = root.findall('.//item')
-    print(f"Found {len(items)} news articles in RSS feed.")
+    print(f"Found {len(items)} news articles in RSS feed. Starting summarization...")
     
     for item in items:
         title = item.find('title').text if item.find('title') is not None else "No Title"
@@ -47,20 +83,15 @@ def process_news():
         author = item.find('author').text if item.find('author') is not None else "Unknown"
         pub_date_str = item.find('pubDate').text if item.find('pubDate') is not None else ""
         
-        # pub_date_str 형식: "2026-05-20 23:28:46"
         try:
             pub_date = datetime.strptime(pub_date_str, "%Y-%m-%d %H:%M:%S")
         except ValueError:
-            pub_date = now # 파싱 실패 시 예외처리
+            pub_date = now
             
-        # HTML 렌더링용 날짜 포맷
         display_date = pub_date.strftime("%m/%d %H:%M")
         
-        # 깔끔한 텍스트를 위해 CDATA, 불필요한 태그 등 제거
-        # Description이 너무 길 경우 150자로 자르기
-        clean_desc = re.sub(r'<[^>]+>', '', description).strip()
-        if len(clean_desc) > 150:
-            clean_desc = clean_desc[:147] + "..."
+        # 기사 본문을 스크래핑하여 완결된 문장으로 요약
+        clean_desc = summarize_article(link, description)
             
         news_obj = {
             "title": title.strip(),
@@ -71,30 +102,25 @@ def process_news():
             "raw_date": pub_date
         }
         
-        # 카테고리 분류
         if today_0800 <= pub_date <= today_1800:
             daytime_news.append(news_obj)
         elif yesterday_1800 <= pub_date < today_0800:
             nighttime_news.append(news_obj)
         else:
-            # 최근 24시간 외의 뉴스도 너무 적을 경우를 대비해 최신순으로 기타 배열
             other_news.append(news_obj)
             
-    # RSS 자체적으로 최신순 정렬되어 있지만, 한번 더 정렬
     daytime_news.sort(key=lambda x: x['raw_date'], reverse=True)
     nighttime_news.sort(key=lambda x: x['raw_date'], reverse=True)
     other_news.sort(key=lambda x: x['raw_date'], reverse=True)
     
-    # 만약 주야간 뉴스가 없다면, other_news로 대체
     if len(daytime_news) == 0 and len(nighttime_news) == 0:
         print("최근 24시간 내 뉴스가 없어 전체 최신 뉴스를 사용합니다.")
         half = len(other_news) // 2
         daytime_news = other_news[:half]
         nighttime_news = other_news[half:]
         
-    print(f"분류 완료 - 주간: {len(daytime_news)}건, 야간: {len(nighttime_news)}건")
+    print(f"요약 완료 - 주간: {len(daytime_news)}건, 야간: {len(nighttime_news)}건")
     
-    # HTML 생성
     html_content = generate_news_html(daytime_news, nighttime_news, now.strftime("%Y-%m-%d %H:%M KST"))
     
     with open("news.html", "w", encoding="utf-8") as f:
@@ -102,7 +128,6 @@ def process_news():
     print("Saved news.html successfully.")
 
 def generate_news_html(daytime_news, nighttime_news, update_time):
-    # 카드 생성 헬퍼 함수
     def build_cards(news_list, empty_msg="해당 시간대에 기사가 없습니다."):
         if not news_list:
             return f"<div class='empty-state'>{empty_msg}</div>"
@@ -116,7 +141,9 @@ def generate_news_html(daytime_news, nighttime_news, update_time):
                     <span class="news-author">✍️ {news['author']}</span>
                 </div>
                 <h3 class="news-title">{news['title']}</h3>
-                <p class="news-desc">{news['description']}</p>
+                <div class="news-desc-container">
+                    <p class="news-desc">{news['description']}</p>
+                </div>
                 <div class="news-action">기사 원문 보기 ➔</div>
             </a>
             """
@@ -168,7 +195,6 @@ def generate_news_html(daytime_news, nighttime_news, update_time):
         
         .column-title {{ font-family: var(--font-display); font-size: 1.4rem; font-weight: 700; color: var(--text-primary); }}
 
-        /* Card Styles */
         .news-card {{
             display: flex; flex-direction: column; gap: 0.75rem;
             background: var(--bg-surface);
@@ -200,7 +226,9 @@ def generate_news_html(daytime_news, nighttime_news, update_time):
         .news-title {{ font-size: 1.15rem; font-weight: 700; color: var(--text-primary); margin: 0; line-height: 1.4; transition: color 0.2s; }}
         .news-card:hover .news-title {{ color: #e2e8f0; }}
         
-        .news-desc {{ font-size: 0.9rem; color: var(--text-secondary); margin: 0; line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }}
+        /* Removed line-clamp to show full summary sentences */
+        .news-desc-container {{ background: rgba(0,0,0,0.15); padding: 1rem; border-radius: 8px; border-left: 2px solid rgba(255,255,255,0.05); }}
+        .news-desc {{ font-size: 0.95rem; color: var(--text-secondary); margin: 0; line-height: 1.6; word-break: keep-all; }}
         
         .news-action {{ font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-top: 0.5rem; transition: color 0.2s; text-align: right; }}
         .col-day .news-card:hover .news-action {{ color: var(--color-day); }}
@@ -215,7 +243,7 @@ def generate_news_html(daytime_news, nighttime_news, update_time):
         <header>
             <div class="brand">
                 <h1>Bond & FX News Briefing</h1>
-                <p>연합인포맥스 주요 기사 요약</p>
+                <p>연합인포맥스 주요 기사 자동 요약 (완결문)</p>
             </div>
             <div class="update-badge">
                 🔄 최종 업데이트: {update_time}
