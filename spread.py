@@ -5,6 +5,7 @@ import requests
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import dashboard_exchange
+import dashboard_news
 
 
 # Load environment variables from .env file
@@ -296,12 +297,15 @@ def main():
         f.write(html_content)
     print(f"Successfully created premium dashboard in '{html_file}'.")
 
-    # Generate Shell index.html
-    generate_shell_index_html()
-    print(f"Successfully generated shell navigation dashboard 'index.html'.")
-    
     # Process Exchange Rates (generates exchange.html, csv, xlsx)
     dashboard_exchange.process_exchange_rates(api_key)
+    
+    # Process RSS News (generates news.html)
+    dashboard_news.process_news()
+    
+    # Generate Shell index.html (with 3 tabs)
+    generate_shell_index_html()
+    print(f"Successfully generated shell navigation dashboard 'index.html'.")
 
 def generate_shell_index_html():
     html = """<!DOCTYPE html>
@@ -332,8 +336,9 @@ def generate_shell_index_html():
 <body>
     <nav>
         <div class="nav-title">BOK Analytics Platform</div>
-        <button class="tab active" onclick="switchTab('spread.html', this)">📊 주요 채권 금리 및 스프레드</button>
+        <button class="tab active" onclick="switchTab('spread.html', this)">📊 주요 채권 금리/스프레드</button>
         <button class="tab" onclick="switchTab('exchange.html', this)">💵 원/달러 환율 추이</button>
+        <button class="tab" onclick="switchTab('news.html', this)">📰 채권/외환 주요 기사</button>
     </nav>
     <iframe id="content-frame" src="spread.html"></iframe>
     <script>

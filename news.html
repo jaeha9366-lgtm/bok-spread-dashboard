@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>채권/외환 주요 기사 요약</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #080b11;
+            --bg-surface: rgba(13, 18, 30, 0.75);
+            --bg-card: rgba(22, 30, 49, 0.45);
+            --border-glow: rgba(99, 102, 241, 0.15);
+            --border-hover: rgba(99, 102, 241, 0.4);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --color-day: #3b82f6;
+            --color-night: #a855f7;
+            --font-display: 'Outfit', sans-serif;
+            --font-body: 'Inter', sans-serif;
+        }
+
+        body { background-color: var(--bg-base); color: var(--text-primary); font-family: var(--font-body); min-height: 100vh; padding: 2rem 1.5rem; margin: 0; overflow-y: auto; }
+        .container { max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: 2rem; }
+        
+        header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-glow); padding-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
+        .brand h1 { font-family: var(--font-display); font-size: 2.2rem; font-weight: 800; background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; }
+        .brand p { color: var(--text-secondary); font-size: 0.95rem; margin-top: 0.25rem; }
+        
+        .update-badge { background: rgba(255,255,255,0.05); border: 1px solid var(--border-glow); padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.85rem; color: var(--text-secondary); }
+
+        .news-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+        @media (max-width: 1024px) { .news-grid { grid-template-columns: 1fr; } }
+
+        .news-column { display: flex; flex-direction: column; gap: 1.25rem; }
+        .column-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        
+        .icon-day { color: var(--color-day); font-size: 1.5rem; }
+        .icon-night { color: var(--color-night); font-size: 1.5rem; }
+        
+        .column-title { font-family: var(--font-display); font-size: 1.4rem; font-weight: 700; color: var(--text-primary); }
+
+        /* Card Styles */
+        .news-card {
+            display: flex; flex-direction: column; gap: 0.75rem;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-glow);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-decoration: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .news-card::before {
+            content: ''; position: absolute; left: 0; top: 0; height: 100%; width: 4px;
+            background: rgba(255,255,255,0.1); transition: all 0.3s;
+        }
+        
+        .col-day .news-card:hover::before { background: var(--color-day); }
+        .col-night .news-card:hover::before { background: var(--color-night); }
+
+        .news-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--border-hover);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+            background: var(--bg-card);
+        }
+
+        .news-meta { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted); font-weight: 500; }
+        .news-title { font-size: 1.15rem; font-weight: 700; color: var(--text-primary); margin: 0; line-height: 1.4; transition: color 0.2s; }
+        .news-card:hover .news-title { color: #e2e8f0; }
+        
+        .news-desc { font-size: 0.9rem; color: var(--text-secondary); margin: 0; line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+        
+        .news-action { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-top: 0.5rem; transition: color 0.2s; text-align: right; }
+        .col-day .news-card:hover .news-action { color: var(--color-day); }
+        .col-night .news-card:hover .news-action { color: var(--color-night); }
+
+        .empty-state { padding: 3rem; text-align: center; color: var(--text-muted); background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.1); }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="brand">
+                <h1>Bond & FX News Briefing</h1>
+                <p>연합인포맥스 주요 기사 요약</p>
+            </div>
+            <div class="update-badge">
+                🔄 최종 업데이트: 2026-05-20 23:41 KST
+            </div>
+        </header>
+
+        <div class="news-grid">
+            <div class="news-column col-day">
+                <div class="column-header">
+                    <span class="icon-day">☀️</span>
+                    <span class="column-title">주간 주요 기사 (08:00 ~ 18:00)</span>
+                </div>
+                
+            <a href="https://news.einfomax.co.kr/news/articleView.html?idxno=4415978" target="_blank" class="news-card">
+                <div class="news-meta">
+                    <span class="news-date">🕒 05/20 17:50</span>
+                    <span class="news-author">✍️ 김지연 기자</span>
+                </div>
+                <h3 class="news-title">'기존의 틀'로는 어렵다…중소형증권사 품은 외시협</h3>
+                <p class="news-desc">24시 거래를 앞두고 서울외환시장운영협의회(외시협)가 회원사 문턱을 낮춘 것은 비은행권의 역할이 주목받는 시대 변화에 발맞춘 행보로 풀이된다.전통적으로 은행 중심으로 운영돼 왔던 외환시장의 '논의 테이블'이 증권사와 수탁은행, 해외외국환업무취급기관(RFI), 중개...</p>
+                <div class="news-action">기사 원문 보기 ➔</div>
+            </a>
+            
+            <a href="https://news.einfomax.co.kr/news/articleView.html?idxno=4415965" target="_blank" class="news-card">
+                <div class="news-meta">
+                    <span class="news-date">🕒 05/20 16:52</span>
+                    <span class="news-author">✍️ 손지현 기자</span>
+                </div>
+                <h3 class="news-title">이형일 재경부 차관 &quot;시장 안정 위해 6월 국고채 발행 물량 축소&quot;</h3>
+                <p class="news-desc">이형일 재정경제부 1차관이 시장 안정을 위해 6월 국고채 발행 물량을 축소하겠다고 밝혔다.이 차관은 20일 국무회의에서 현안보고에 나서 "최근 국채 시장 관련해 시장 쏠림 여부를 예의주시하고 있다"며 이같이 말했다.이 차관은 "시장 안정을 위해 다음달 국고채 발행...</p>
+                <div class="news-action">기사 원문 보기 ➔</div>
+            </a>
+            
+            <a href="https://news.einfomax.co.kr/news/articleView.html?idxno=4415963" target="_blank" class="news-card">
+                <div class="news-meta">
+                    <span class="news-date">🕒 05/20 16:34</span>
+                    <span class="news-author">✍️ 김학성 기자</span>
+                </div>
+                <h3 class="news-title">[뉴노멀] 환율 1,500원에 &quot;원화, 펀더멘털 대비 저평가&quot;</h3>
+                <p class="news-desc">달러-원 환율 1,500원이 '뉴노멀(새로운 표준)'로 자리 잡는 것일까. 환율이 한 달여 만에 다시 1,500원을 웃돌면서 이 같은 시각이 고개를 들고 있다.다만 전문가들은 최근의 환율 급등을 쏠림의 결과로 해석하면서 일시적으로 중첩된 악재들이 해소되면 환율이 ...</p>
+                <div class="news-action">기사 원문 보기 ➔</div>
+            </a>
+            
+            <a href="https://news.einfomax.co.kr/news/articleView.html?idxno=4415962" target="_blank" class="news-card">
+                <div class="news-meta">
+                    <span class="news-date">🕒 05/20 16:34</span>
+                    <span class="news-author">✍️ 손지현 기자</span>
+                </div>
+                <h3 class="news-title">[뉴노멀] 당분간 주인공은 국고채 30년물…대외·수급에 시선집중</h3>
+                <p class="news-desc">최근 서울채권시장의 주인공으로 국고채 30년물이 급부상하고 있다.주요국의 재정 확대 우려로 글로벌 장기금리가 급격한 변동성을 보이면서 국고채 30년물도 직접적인 영향권 아래에 놓여있다.최근 일본 및 영국의 장기금리는 약 30년 만에 최고 수준에 도달했으며, 전일 ...</p>
+                <div class="news-action">기사 원문 보기 ➔</div>
+            </a>
+            
+            <a href="https://news.einfomax.co.kr/news/articleView.html?idxno=4415956" target="_blank" class="news-card">
+                <div class="news-meta">
+                    <span class="news-date">🕒 05/20 16:26</span>
+                    <span class="news-author">✍️ 노현우 기자</span>
+                </div>
+                <h3 class="news-title">삼성전자 호재 유효할까…운용사 장기물 트레이딩 주시</h3>
+                <p class="news-desc">최근 장기 국고채를 대거 매수한 주체로 삼성전자 퇴직연금이 추정되는 가운데, 채권시장은 추가 매수 여부에 촉각을 곤두세우고 있다. '현금 부자' 삼성전자는 경제, 산업은 물론 채권시장에서 부쩍 존재감을 키우고 있다.중동 전쟁과 이에 따른 인플레이션 우려, 기준금리...</p>
+                <div class="news-action">기사 원문 보기 ➔</div>
+            </a>
+            
+            <a href="https://news.einfomax.co.kr/news/articleView.html?idxno=4415946" target="_blank" class="news-card">
+                <div class="news-meta">
+                    <span class="news-date">🕒 05/20 16:04</span>
+                    <span class="news-author">✍️ 이민재 기자</span>
+                </div>
+                <h3 class="news-title">[도쿄환시] 달러-엔, 당국 개입 경계감에 158엔대로 소폭 하락</h3>
+                <p class="news-desc">20일 도쿄환시에서 달러-엔 환율이 장중 159엔을 뚫고 올랐다가 일본 당국의 개입 경계감에 158대로 내려왔다.연합인포맥스(화면번호 6411)에 따르면 달러-엔 환율은 오후 1시 55분 기준 전장 대비 0.03% 하락한 158.960엔에 거래됐다.전날 159엔대...</p>
+                <div class="news-action">기사 원문 보기 ➔</div>
+            </a>
+            
+            <a href="https://news.einfomax.co.kr/news/articleView.html?idxno=4415940" target="_blank" class="news-card">
+                <div class="news-meta">
+                    <span class="news-date">🕒 05/20 15:36</span>
+                    <span class="news-author">✍️ 정선미 기자</span>
+                </div>
+                <h3 class="news-title">주금공 MBS 발행에 1천200억 미매각…&quot;중장기물 수요 취약&quot;</h3>
+                <p class="news-desc">글로벌 초장기 금리 급등 속에 주택저당증권(MBS)도 구간을 가리지 않고 미매각이 발생하면서 취약한 시장 심리를 반영했다.20일 채권시장에 따르면 이날 주택금융공사가 실시한 MBS 입찰에서 2년과 3년물을 제외한 구간에서 응찰금액이 발행규모에 미달하는 미매각이 나...</p>
+                <div class="news-action">기사 원문 보기 ➔</div>
+            </a>
+            
+            <a href="https://news.einfomax.co.kr/news/articleView.html?idxno=4415938" target="_blank" class="news-card">
+                <div class="news-meta">
+                    <span class="news-date">🕒 05/20 15:34</span>
+                    <span class="news-author">✍️ 노현우 기자</span>
+                </div>
+                <h3 class="news-title">'매수 파업' 속 단번에 국고채 10년물 1조 매수…삼성전자 퇴직연금 추정</h3>
+                <p class="news-desc">'매수 파업'이라는 말이 나올 정도로 채권시장이 약세를 거듭하는 가운데 1조원 규모 자금이 한꺼번에 대거 유입돼 눈길을 끈다. 매수 채권의 만기, 종목, 거래 시기를 보면 삼성전자 퇴직연금 자금일 가능성이 크다는 평가가 제기된다.20일 채권시장에 따르면 운용사로 ...</p>
+                <div class="news-action">기사 원문 보기 ➔</div>
+            </a>
+            
+            <a href="https://news.einfomax.co.kr/news/articleView.html?idxno=4415935" target="_blank" class="news-card">
+                <div class="news-meta">
+                    <span class="news-date">🕒 05/20 15:30</span>
+                    <span class="news-author">✍️ 고유권 기자</span>
+                </div>
+                <h3 class="news-title">'영업이익 N% 성과급' 비판한 李대통령…'잔여재산청구권' 논의 촉발하나</h3>
+                <p class="news-desc">성과급 규모를 둘러싸고 삼성전자 노사 간 협상이 사실상 결렬돼 노조의 총파업이 임박한 가운데, 이재명 대통령이 노조의 요구가 부당하다는 취지로 비판하면서 정부가 긴급조정권 발동 등을 통한 적극적 개입에 나설 가능성이 커지고 있다.정부가 중앙노동위원회 사후 조정을 ...</p>
+                <div class="news-action">기사 원문 보기 ➔</div>
+            </a>
+            
+            </div>
+            
+            <div class="news-column col-night">
+                <div class="column-header">
+                    <span class="icon-night">🌙</span>
+                    <span class="column-title">야간 주요 기사 (전일 18:00 ~ 08:00)</span>
+                </div>
+                <div class='empty-state'>해당 시간대에 기사가 없습니다.</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
