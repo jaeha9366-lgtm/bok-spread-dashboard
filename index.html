@@ -1228,16 +1228,22 @@
 
         // Handle legend items visibility toggles
         function toggleDataset(idx) {
-            const isHidden = myChart.getDatasetMeta(idx).hidden;
-            myChart.getDatasetMeta(idx).hidden = !isHidden;
-            myChart.update();
+            let isCurrentlyHidden = false;
             
             if (activeChartMode === 'yields') {
                 hiddenDatasets.yields[idx] = !hiddenDatasets.yields[idx];
-                document.getElementById(`legend-yields-${idx}`).classList.toggle('disabled', hiddenDatasets.yields[idx]);
+                isCurrentlyHidden = hiddenDatasets.yields[idx];
+                document.getElementById(`legend-yields-${idx}`).classList.toggle('disabled', isCurrentlyHidden);
             } else {
                 hiddenDatasets.spreads[idx] = !hiddenDatasets.spreads[idx];
-                document.getElementById(`legend-spreads-${idx}`).classList.toggle('disabled', hiddenDatasets.spreads[idx]);
+                isCurrentlyHidden = hiddenDatasets.spreads[idx];
+                document.getElementById(`legend-spreads-${idx}`).classList.toggle('disabled', isCurrentlyHidden);
+            }
+            
+            if (myChart) {
+                myChart.getDatasetMeta(idx).hidden = isCurrentlyHidden;
+                myChart.data.datasets[idx].hidden = isCurrentlyHidden;
+                myChart.update();
             }
         }
 
