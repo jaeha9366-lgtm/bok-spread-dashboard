@@ -252,16 +252,16 @@ def generate_news_html(daytime_news, nighttime_news, update_time):
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {{
-            --bg-base: #080b11;
-            --bg-surface: rgba(13, 18, 30, 0.75);
-            --bg-card: rgba(22, 30, 49, 0.45);
-            --border-glow: rgba(99, 102, 241, 0.15);
-            --border-hover: rgba(99, 102, 241, 0.4);
-            --text-primary: #f8fafc;
-            --text-secondary: #94a3b8;
-            --text-muted: #64748b;
-            --color-day: #3b82f6;
-            --color-night: #a855f7;
+            --bg-base: #f8fafc;
+            --bg-surface: #ffffff;
+            --bg-card: rgba(255, 255, 255, 0.8);
+            --border-glow: rgba(99, 102, 241, 0.2);
+            --border-hover: rgba(99, 102, 241, 0.5);
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --color-day: #2563eb;
+            --color-night: #8b5cf6;
             --font-display: 'Outfit', sans-serif;
             --font-body: 'Inter', sans-serif;
         }}
@@ -273,13 +273,13 @@ def generate_news_html(daytime_news, nighttime_news, update_time):
         .brand h1 {{ font-family: var(--font-display); font-size: 2.2rem; font-weight: 800; background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; }}
         .brand p {{ color: var(--text-secondary); font-size: 0.95rem; margin-top: 0.25rem; }}
 
-        .update-badge {{ background: rgba(255,255,255,0.05); border: 1px solid var(--border-glow); padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.85rem; color: var(--text-secondary); }}
+        .update-badge {{ background: rgba(0,0,0,0.03); border: 1px solid var(--border-glow); padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.85rem; color: var(--text-secondary); }}
 
         .news-grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }}
         @media (max-width: 1024px) {{ .news-grid {{ grid-template-columns: 1fr; }} }}
 
         .news-column {{ display: flex; flex-direction: column; gap: 1.25rem; }}
-        .column-header {{ display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); }}
+        .column-header {{ display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(0,0,0,0.05); }}
         .column-title {{ font-family: var(--font-display); font-size: 1.4rem; font-weight: 700; color: var(--text-primary); }}
 
         .news-card {{
@@ -295,25 +295,25 @@ def generate_news_html(daytime_news, nighttime_news, update_time):
         }}
         .news-card::before {{
             content: ''; position: absolute; left: 0; top: 0; height: 100%; width: 4px;
-            background: rgba(255,255,255,0.1); transition: all 0.3s;
+            background: rgba(0,0,0,0.05); transition: all 0.3s;
         }}
         .col-day .news-card:hover::before {{ background: var(--color-day); }}
         .col-night .news-card:hover::before {{ background: var(--color-night); }}
         .news-card:hover {{
             transform: translateY(-4px);
             border-color: var(--border-hover);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
             background: var(--bg-card);
         }}
 
         .news-meta {{ display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--text-muted); font-weight: 500; flex-wrap: wrap; gap: 0.25rem; }}
         .news-title {{ font-size: 1.15rem; font-weight: 700; color: var(--text-primary); margin: 0; line-height: 1.4; }}
-        .news-card:hover .news-title {{ color: #e2e8f0; }}
+        .news-card:hover .news-title {{ color: var(--text-primary); }}
 
         .ai-badge {{
             background: linear-gradient(135deg, rgba(168,85,247,0.2), rgba(236,72,153,0.2));
             border: 1px solid rgba(168,85,247,0.3);
-            color: #c084fc;
+            color: #7c3aed;
             padding: 0.1rem 0.5rem;
             border-radius: 20px;
             font-size: 0.75rem;
@@ -321,7 +321,7 @@ def generate_news_html(daytime_news, nighttime_news, update_time):
         }}
 
         .news-desc-container {{
-            background: rgba(0,0,0,0.2);
+            background: #f1f5f9;
             padding: 1rem 1.2rem;
             border-radius: 8px;
             border-left: 3px solid rgba(99,102,241,0.3);
@@ -332,7 +332,7 @@ def generate_news_html(daytime_news, nighttime_news, update_time):
         .col-day .news-card:hover .news-action {{ color: var(--color-day); }}
         .col-night .news-card:hover .news-action {{ color: var(--color-night); }}
 
-        .empty-state {{ padding: 3rem; text-align: center; color: var(--text-muted); background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.1); }}
+        .empty-state {{ padding: 3rem; text-align: center; color: var(--text-muted); background: rgba(0,0,0,0.02); border-radius: 12px; border: 1px dashed rgba(0,0,0,0.1); }}
     </style>
 </head>
 <body>

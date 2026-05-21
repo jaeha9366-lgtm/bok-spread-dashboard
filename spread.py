@@ -386,21 +386,21 @@ def get_html_template(data_list, stats):
     
     <style>
         :root {{
-            --bg-base: #080b11;
-            --bg-surface: rgba(13, 18, 30, 0.75);
-            --bg-card: rgba(22, 30, 49, 0.45);
-            --border-glow: rgba(99, 102, 241, 0.15);
-            --border-hover: rgba(99, 102, 241, 0.35);
-            --text-primary: #f8fafc;
-            --text-secondary: #94a3b8;
-            --text-muted: #64748b;
+            --bg-base: #f8fafc;
+            --bg-surface: #ffffff;
+            --bg-card: rgba(255, 255, 255, 0.8);
+            --border-glow: rgba(99, 102, 241, 0.2);
+            --border-hover: rgba(99, 102, 241, 0.5);
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
             
-            --color-base-rate: #a855f7; /* Neon Purple */
-            --color-treasury: #3b82f6;  /* Neon Blue */
-            --color-corporate: #f59e0b; /* Neon Amber */
-            --color-industrial: #14b8a6;/* Neon Teal */
-            --color-stabilization: #f43f5e; /* Neon Rose */
-            --color-danger: #ef4444;    /* Crimson Red */
+            --color-base-rate: #8b5cf6; 
+            --color-treasury: #2563eb;  
+            --color-corporate: #ea580c; 
+            --color-industrial: #0d9488;
+            --color-stabilization: #e11d48; 
+            --color-danger: #ef4444;    
             
             --font-display: 'Outfit', sans-serif;
             --font-body: 'Inter', sans-serif;
@@ -415,8 +415,8 @@ def get_html_template(data_list, stats):
         body {{
             background-color: var(--bg-base);
             background-image: 
-                radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.06) 0%, transparent 45%),
-                radial-gradient(circle at 85% 85%, rgba(168, 85, 247, 0.06) 0%, transparent 50%);
+                radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%),
+                radial-gradient(circle at 85% 85%, rgba(168, 85, 247, 0.08) 0%, transparent 50%);
             color: var(--text-primary);
             font-family: var(--font-body);
             min-height: 100vh;
@@ -472,12 +472,11 @@ def get_html_template(data_list, stats):
         }}
 
         .btn {{
-            background: rgba(255, 255, 255, 0.04);
+            background: #ffffff;
             border: 1px solid var(--border-glow);
             color: var(--text-primary);
-            padding: 0.6rem 1.2rem;
+            padding: 0.65rem 1.25rem;
             border-radius: 8px;
-            font-family: var(--font-body);
             font-size: 0.85rem;
             font-weight: 500;
             cursor: pointer;
@@ -485,22 +484,26 @@ def get_html_template(data_list, stats):
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            backdrop-filter: blur(10px);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
         }}
 
         .btn:hover {{
-            background: rgba(99, 102, 241, 0.1);
+            background: #f1f5f9;
             border-color: var(--border-hover);
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }}
+
+        .btn-excel {{
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+            color: #16a34a;
         }}
 
         .btn-excel:hover {{
-            background: rgba(16, 185, 129, 0.1) !important;
-            border-color: rgba(16, 185, 129, 0.4) !important;
-            color: #34d399 !important;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15) !important;
+            background: #dcfce7;
+            border-color: #86efac;
+            color: #15803d;
         }}
 
         /* Anomaly Alert Banner */
@@ -508,8 +511,8 @@ def get_html_template(data_list, stats):
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            background: rgba(245, 158, 11, 0.04);
-            border: 1px solid rgba(245, 158, 11, 0.15);
+            background: rgba(245, 158, 11, 0.05);
+            border: 1px solid rgba(245, 158, 11, 0.2);
             border-left: 4px solid var(--color-corporate);
             border-radius: 8px;
             padding: 0.65rem 1rem;
@@ -550,7 +553,6 @@ def get_html_template(data_list, stats):
 
         .metric-card {{
             background: var(--bg-surface);
-            backdrop-filter: blur(16px);
             border: 1px solid var(--border-glow);
             border-radius: 16px;
             padding: 1.5rem;
@@ -560,12 +562,13 @@ def get_html_template(data_list, stats):
             position: relative;
             overflow: hidden;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }}
 
         .metric-card:hover {{
             border-color: var(--border-hover);
             transform: translateY(-3px);
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
         }}
 
         .metric-card::before {{
@@ -602,7 +605,7 @@ def get_html_template(data_list, stats):
             padding: 0.15rem 0.4rem;
             border-radius: 5px;
             font-weight: 600;
-            background: rgba(255, 255, 255, 0.06);
+            background: #f1f5f9;
             color: var(--text-secondary);
         }}
 
@@ -630,7 +633,7 @@ def get_html_template(data_list, stats):
             display: flex;
             flex-direction: column;
             gap: 0.4rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            border-top: 1px solid #f1f5f9;
             padding-top: 0.6rem;
             margin-top: 0.4rem;
         }}
@@ -672,7 +675,6 @@ def get_html_template(data_list, stats):
 
         .panel {{
             background: var(--bg-surface);
-            backdrop-filter: blur(16px);
             border: 1px solid var(--border-glow);
             border-radius: 16px;
             padding: 1.75rem;
@@ -680,10 +682,11 @@ def get_html_template(data_list, stats):
             flex-direction: column;
             gap: 1.5rem;
             transition: border-color 0.3s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }}
 
         .panel:hover {{
-            border-color: rgba(99, 102, 241, 0.25);
+            border-color: rgba(99, 102, 241, 0.3);
         }}
 
         .panel-title-bar {{
@@ -705,8 +708,7 @@ def get_html_template(data_list, stats):
 
         .chart-view-selector {{
             display: flex;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: #f1f5f9;
             padding: 0.2rem;
             border-radius: 8px;
         }}
@@ -724,18 +726,17 @@ def get_html_template(data_list, stats):
         }}
 
         .view-btn.active {{
-            background: rgba(99, 102, 241, 0.2);
-            color: #818cf8;
-            box-shadow: 0 2px 6px rgba(99, 102, 241, 0.1);
+            background: #ffffff;
+            color: #4f46e5;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }}
 
         .chart-controls {{
             display: flex;
             gap: 0.35rem;
-            background: rgba(255, 255, 255, 0.03);
+            background: #f1f5f9;
             padding: 0.2rem;
             border-radius: 8px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
         }}
 
         .chart-ctrl-btn {{
@@ -751,8 +752,8 @@ def get_html_template(data_list, stats):
         }}
 
         .chart-ctrl-btn.active {{
-            background: rgba(99, 102, 241, 0.2);
-            color: #818cf8;
+            background: #ffffff;
+            color: #4f46e5;
         }}
 
         .chart-container {{
@@ -766,10 +767,10 @@ def get_html_template(data_list, stats):
             display: flex;
             flex-direction: column;
             gap: 0.85rem;
-            background: rgba(255, 255, 255, 0.02);
+            background: #f8fafc;
             border-radius: 12px;
             padding: 1.1rem;
-            border: 1px solid rgba(255, 255, 255, 0.04);
+            border: 1px solid #f1f5f9;
         }}
 
         .legend-item {{
@@ -832,20 +833,19 @@ def get_html_template(data_list, stats):
         }}
 
         .search-input {{
-            width: 100%;
-            background: rgba(255, 255, 255, 0.03);
+            background: rgba(0, 0, 0, 0.02);
             border: 1px solid var(--border-glow);
             color: var(--text-primary);
-            padding: 0.6rem 1rem 0.6rem 2.2rem;
+            padding: 0.6rem 1rem 0.6rem 2.5rem;
             border-radius: 8px;
             font-size: 0.85rem;
-            outline: none;
+            width: 250px;
             transition: all 0.3s ease;
         }}
 
         .search-input:focus {{
             border-color: var(--border-hover);
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(0, 0, 0, 0.05);
             box-shadow: 0 0 10px rgba(99, 102, 241, 0.15);
         }}
 
@@ -864,8 +864,8 @@ def get_html_template(data_list, stats):
             width: 100%;
             overflow-x: auto;
             border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            background: rgba(255, 255, 255, 0.01);
+            border: 1px solid #e2e8f0;
+            background: #ffffff;
         }}
 
         table {{
@@ -877,27 +877,27 @@ def get_html_template(data_list, stats):
         }}
 
         th {{
-            background: rgba(12, 17, 29, 0.65);
+            background: #f8fafc;
             color: var(--text-secondary);
             font-weight: 600;
             padding: 1.1rem 1rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            border-bottom: 1px solid #e2e8f0;
             cursor: pointer;
             user-select: none;
             transition: all 0.2s ease;
         }}
 
         th:hover {{
-            background: rgba(99, 102, 241, 0.1);
+            background: #f1f5f9;
             color: var(--text-primary);
         }}
 
-        th.sorted-asc::after {{ content: ' ▲'; font-size: 0.65rem; color: #818cf8; }}
-        th.sorted-desc::after {{ content: ' ▼'; font-size: 0.65rem; color: #818cf8; }}
+        th.sorted-asc::after {{ content: ' ▲'; font-size: 0.65rem; color: #4f46e5; }}
+        th.sorted-desc::after {{ content: ' ▼'; font-size: 0.65rem; color: #4f46e5; }}
 
         td {{
             padding: 0.95rem 1rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            border-bottom: 1px solid #f1f5f9;
             color: var(--text-secondary);
         }}
 
@@ -906,7 +906,7 @@ def get_html_template(data_list, stats):
         }}
 
         tr:hover td {{
-            background: rgba(255, 255, 255, 0.015);
+            background: #f1f5f9;
             color: var(--text-primary);
         }}
 
@@ -916,7 +916,7 @@ def get_html_template(data_list, stats):
         }}
 
         .cell-base-rate {{
-            color: #c084fc;
+            color: #8b5cf6;
             font-weight: 600;
         }}
 
@@ -948,8 +948,8 @@ def get_html_template(data_list, stats):
         }}
 
         .page-btn {{
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: rgba(0, 0, 0, 0.03);
+            border: 1px solid rgba(0, 0, 0, 0.05);
             color: var(--text-secondary);
             width: 32px;
             height: 32px;
@@ -1544,10 +1544,12 @@ def get_html_template(data_list, stats):
                             display: false
                         }},
                         tooltip: {{
-                            backgroundColor: 'rgba(12, 17, 29, 0.95)',
+                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
                             titleFont: {{ family: 'Outfit', size: 13, weight: 'bold' }},
                             bodyFont: {{ family: 'Inter', size: 12 }},
-                            borderColor: 'rgba(99, 102, 241, 0.25)',
+                            titleColor: '#0f172a',
+                            bodyColor: '#334155',
+                            borderColor: 'rgba(99, 102, 241, 0.3)',
                             borderWidth: 1,
                             padding: 12,
                             cornerRadius: 8,
@@ -1567,7 +1569,7 @@ def get_html_template(data_list, stats):
                     scales: {{
                         x: {{
                             grid: {{
-                                color: 'rgba(255, 255, 255, 0.03)',
+                                color: 'rgba(0, 0, 0, 0.05)',
                                 drawBorder: false
                             }},
                             ticks: {{
@@ -1578,7 +1580,7 @@ def get_html_template(data_list, stats):
                         }},
                         y: {{
                             grid: {{
-                                color: 'rgba(255, 255, 255, 0.05)',
+                                color: 'rgba(0, 0, 0, 0.05)',
                                 drawBorder: false
                             }},
                             ticks: {{

@@ -115,15 +115,16 @@ def get_exchange_html(data_list, stats):
     
     <style>
         :root {{
-            --bg-base: #080b11;
-            --bg-surface: rgba(13, 18, 30, 0.75);
-            --border-glow: rgba(99, 102, 241, 0.15);
-            --border-hover: rgba(99, 102, 241, 0.35);
-            --text-primary: #f8fafc;
-            --text-secondary: #94a3b8;
-            --text-muted: #64748b;
-            --color-1530: #3b82f6;
-            --color-0200: #f59e0b;
+            --bg-base: #f8fafc;
+            --bg-surface: #ffffff;
+            --bg-card: rgba(255, 255, 255, 0.8);
+            --border-glow: rgba(99, 102, 241, 0.2);
+            --border-hover: rgba(99, 102, 241, 0.5);
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --color-1530: #2563eb;
+            --color-0200: #ea580c;
             --font-display: 'Outfit', sans-serif;
             --font-body: 'Inter', sans-serif;
         }}
@@ -134,14 +135,14 @@ def get_exchange_html(data_list, stats):
         .brand h1 {{ font-family: var(--font-display); font-size: 2.2rem; font-weight: 800; background: linear-gradient(135deg, #3b82f6 0%, #f59e0b 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; }}
         .brand p {{ color: var(--text-secondary); font-size: 0.95rem; margin-top: 0.25rem; }}
 
-        .btn {{ background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-glow); color: var(--text-primary); padding: 0.6rem 1.2rem; border-radius: 8px; font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: all 0.3s; }}
-        .btn:hover {{ background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.4); color: #34d399; }}
+        .btn {{ background: #ffffff; border: 1px solid var(--border-glow); color: var(--text-primary); padding: 0.6rem 1.2rem; border-radius: 8px; font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: all 0.3s; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }}
+        .btn:hover {{ background: #f1f5f9; border-color: rgba(16, 185, 129, 0.4); color: #059669; }}
 
         /* Filter Controls */
         .controls-wrapper {{ display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem; }}
-        .filter-group {{ display: flex; background: rgba(255,255,255,0.03); padding: 0.25rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); }}
+        .filter-group {{ display: flex; background: #e2e8f0; padding: 0.25rem; border-radius: 8px; border: 1px solid #cbd5e1; }}
         .filter-btn {{ background: transparent; border: none; color: var(--text-secondary); padding: 0.45rem 1.2rem; border-radius: 6px; font-family: var(--font-body); font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }}
-        .filter-btn.active {{ background: rgba(99, 102, 241, 0.2); color: #818cf8; }}
+        .filter-btn.active {{ background: #ffffff; color: #4f46e5; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }}
 
         .metrics-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }}
         .metric-card {{ background: var(--bg-surface); border: 1px solid var(--border-glow); border-radius: 16px; padding: 1.5rem; position: relative; }}
@@ -158,13 +159,13 @@ def get_exchange_html(data_list, stats):
         .chart-container {{ position: relative; width: 100%; height: 400px; }}
         
         /* Table Design */
-        .table-container {{ overflow-x: auto; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); margin-top: 1rem; max-height: 400px; overflow-y: auto; }}
+        .table-container {{ overflow-x: auto; border-radius: 12px; border: 1px solid #e2e8f0; margin-top: 1rem; max-height: 400px; overflow-y: auto; }}
         table {{ width: 100%; border-collapse: collapse; font-size: 0.85rem; }}
-        th {{ background: rgba(255,255,255,0.03); color: var(--text-secondary); font-weight: 600; padding: 1rem; text-align: right; position: sticky; top: 0; z-index: 10; backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255,255,255,0.05); }}
+        th {{ background: #f8fafc; color: var(--text-secondary); font-weight: 600; padding: 1rem; text-align: right; position: sticky; top: 0; z-index: 10; border-bottom: 1px solid #e2e8f0; }}
         th:first-child {{ text-align: left; }}
-        td {{ padding: 0.85rem 1rem; text-align: right; border-bottom: 1px solid rgba(255,255,255,0.02); color: var(--text-primary); }}
+        td {{ padding: 0.85rem 1rem; text-align: right; border-bottom: 1px solid #f1f5f9; color: var(--text-primary); }}
         td:first-child {{ text-align: left; color: var(--text-secondary); font-weight: 500; }}
-        tr:hover td {{ background: rgba(255,255,255,0.015); }}
+        tr:hover td {{ background: #f1f5f9; }}
         .cell-tag {{ color: #94a3b8; font-size: 0.8rem; margin-left: 4px; }}
     </style>
 </head>
@@ -329,8 +330,8 @@ def get_exchange_html(data_list, stats):
                         {{
                             label: '15:30 주간 종가',
                             data: data1530,
-                            borderColor: '#3b82f6',
-                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            borderColor: '#2563eb',
+                            backgroundColor: 'rgba(37, 99, 235, 0.05)',
                             borderWidth: 2,
                             pointRadius: 0,
                             pointHoverRadius: 4,
@@ -340,7 +341,7 @@ def get_exchange_html(data_list, stats):
                         {{
                             label: '02:00 야간 종가',
                             data: data0200,
-                            borderColor: '#f59e0b',
+                            borderColor: '#ea580c',
                             backgroundColor: 'transparent',
                             borderWidth: 2,
                             pointRadius: 0,
@@ -355,11 +356,11 @@ def get_exchange_html(data_list, stats):
                     maintainAspectRatio: false,
                     interaction: {{ mode: 'index', intersect: false }},
                     plugins: {{
-                        legend: {{ labels: {{ color: '#94a3b8', font: {{ family: 'Inter', size: 12 }} }} }},
+                        legend: {{ labels: {{ color: '#64748b', font: {{ family: 'Inter', size: 12 }} }} }},
                         tooltip: {{
-                            backgroundColor: 'rgba(13, 18, 30, 0.9)',
-                            titleColor: '#f8fafc',
-                            bodyColor: '#e2e8f0',
+                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                            titleColor: '#0f172a',
+                            bodyColor: '#334155',
                             borderColor: 'rgba(99, 102, 241, 0.3)',
                             borderWidth: 1,
                             padding: 10,
@@ -383,8 +384,8 @@ def get_exchange_html(data_list, stats):
                         }}
                     }},
                     scales: {{
-                        x: {{ grid: {{ color: 'rgba(255, 255, 255, 0.05)' }}, ticks: {{ color: '#64748b', maxTicksLimit: 12 }} }},
-                        y: {{ grid: {{ color: 'rgba(255, 255, 255, 0.05)' }}, ticks: {{ color: '#64748b' }} }}
+                        x: {{ grid: {{ color: 'rgba(0, 0, 0, 0.05)' }}, ticks: {{ color: '#64748b', maxTicksLimit: 12 }} }},
+                        y: {{ grid: {{ color: 'rgba(0, 0, 0, 0.05)' }}, ticks: {{ color: '#64748b' }} }}
                     }}
                 }}
             }});
