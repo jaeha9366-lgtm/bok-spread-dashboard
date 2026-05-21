@@ -15,105 +15,6 @@ def fetch_data_for_item(api_key, item_code, start_date, end_date):
         print(f"Error fetching exchange rate data ({item_code}): {e}")
     return []
 
-def generate_excel(df, xlsx_filename):
-    try:
-        with pd.ExcelWriter(xlsx_filename, engine='xlsxwriter') as writer:
-            export_cols = ['날짜', '15:30 종가']
-            has_0200 = '02:00 종가' in df.columns
-            if has_0200:
-                export_cols.append('02:00 종가')
-                
-            df_excel = df[export_cols]
-            df_excel.to_excel(writer, sheet_name='USD_KRW_Data', index=False)
-            
-            workbook  = writer.book
-            worksheet = writer.sheets['USD_KRW_Data']
-            
-            header_format = workbook.add_format({
-                'bold': True, 'align': 'center', 'valign': 'vcenter',
-                'fg_color': '#f2f4f7', 'border': 1, 'border_color': '#d1d5db',
-                'font_name': '맑은 고딕', 'font_size': 11
-            })
-            date_format = workbook.add_format({
-                'align': 'center', 'border': 1, 'border_color': '#e5e7eb',
-                'font_name': 'Segoe UI', 'font_size': 10
-            })
-            num_format = workbook.add_format({
-                'num_format': '#,##0.00', 'align': 'right', 'border': 1, 
-                'border_color': '#e5e7eb', 'font_name': 'Segoe UI', 'font_size': 10
-            })
-            # (전일 야간) 꼬리표를 숫자에 달아주는 마법의 서식
-            prev_num_format = workbook.add_format({
-                'num_format': '#,##0.00 " (전일 야간)"', 'align': 'right', 'border': 1, 
-                'border_color': '#e5e7eb', 'font_name': 'Segoe UI', 'font_size': 10, 'font_color': '#6b7280'
-            })
-            
-            for col_num, value in enumerate(df_excel.columns.values):
-                worksheet.write(0, col_num, value, header_format)
-                
-            # 날짜 열과 데이터 열 기본 서식 적용
-            for row_num in range(len(df_excel)):
-                worksheet.write(row_num + 1, 0, df_excel.iloc[row_num, 0], date_format)
-                worksheet.write(row_num + 1, 1, df_excel.iloc[row_num, 1], num_format)
-                if has_0200:
-                    val = df_excel.iloc[row_num, 2]
-                    if pd.notna(val):
-                        # is_0200_prev 체크
-                        is_prev = df['is_0200_prev'].iloc[row_num]
-                        fmt = prev_num_format if is_prev else num_format
-                        worksheet.write(row_num + 1, 2, val, fmt)
-                    else:
-                        worksheet.write_blank(row_num + 1, 2, None, num_format)
-                
-            worksheet.set_column('A:A', 15)
-            worksheet.set_column('B:B', 18)
-            if has_0200:
-                worksheet.set_column('C:C', 26) # 꼬리표를 위해 폭 확대
-                
-            worksheet.set_row(0, 24)
-            worksheet.hide_gridlines(0)
-            
-            max_row = len(df_excel)
-            min_val = float(df['15:30 종가'].min())
-            max_val = float(df['15:30 종가'].max())
-            y_min = int(min_val - 20)
-            y_max = int(max_val + 20)
-            
-            # Chart 1: 15:30
-            chart_1530 = workbook.add_chart({'type': 'line'})
-            chart_1530.add_series({
-                'name':       ['USD_KRW_Data', 0, 1],
-                'categories': ['USD_KRW_Data', 1, 0, max_row, 0],
-                'values':     ['USD_KRW_Data', 1, 1, max_row, 1],
-                'line':       {'color': '#1f77b4', 'width': 2.0},
-            })
-            chart_1530.set_title({'name': '원/달러(USD/KRW) 주간 종가 추이 (15:30 KST)', 'name_font': {'name': '맑은 고딕', 'size': 14, 'bold': True}})
-            chart_1530.set_x_axis({'name': '날짜', 'label_position': 'low'})
-            chart_1530.set_y_axis({'name': '환율 (원)', 'min': y_min, 'max': y_max})
-            chart_1530.set_legend({'position': 'none'})
-            chart_1530.set_size({'width': 850, 'height': 400})
-            worksheet.insert_chart('E2', chart_1530)
-            
-            # Chart 2: 02:00
-            if has_0200:
-                chart_0200 = workbook.add_chart({'type': 'line'})
-                chart_0200.add_series({
-                    'name':       ['USD_KRW_Data', 0, 2],
-                    'categories': ['USD_KRW_Data', 1, 0, max_row, 0],
-                    'values':     ['USD_KRW_Data', 1, 2, max_row, 2],
-                    'line':       {'color': '#ff7f0e', 'width': 2.0},
-                })
-                chart_0200.set_title({'name': '원/달러(USD/KRW) 야간 종가 추이 (02:00 KST)', 'name_font': {'name': '맑은 고딕', 'size': 14, 'bold': True}})
-                chart_0200.set_x_axis({'name': '날짜', 'label_position': 'low'})
-                chart_0200.set_y_axis({'name': '환율 (원)', 'min': y_min, 'max': y_max})
-                chart_0200.set_legend({'position': 'none'})
-                chart_0200.set_size({'width': 850, 'height': 400})
-                worksheet.insert_chart('E23', chart_0200)
-                
-        print(f"Saved {xlsx_filename} with native charts.")
-    except Exception as e:
-        print(f"Error saving {xlsx_filename}: {e}")
-
 
 def process_exchange_rates(api_key):
     print("\n--- 원/달러 환율 데이터 수집 시작 ---")
@@ -167,25 +68,7 @@ def process_exchange_rates(api_key):
     if 'rate_0200' in df_export:
         df_export['02:00 종가'] = df_export['rate_0200']
     
-    # 생성할 기간 설정
-    periods = {
-        '1m': 30,
-        '3m': 90,
-        '6m': 180,
-        '1y': 365,
-        '3y': 9999 # all
-    }
-    
-    for label, days in periods.items():
-        if days == 9999:
-            df_slice = df_export.copy()
-        else:
-            cutoff = pd.to_datetime(end_date) - timedelta(days=days)
-            df_slice = df_export[df_export['date'] >= cutoff].copy()
-            
-        if len(df_slice) > 0:
-            generate_excel(df_slice, f"usd_krw_{label}.xlsx")
-            
+
     # 전체 CSV 덤프
     export_cols = ['날짜', '15:30 종가']
     if '02:00 종가' in df_export:
@@ -228,6 +111,7 @@ def get_exchange_html(data_list, stats):
     <title>원/달러 환율 추이 대시보드</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
     <style>
         :root {{
@@ -345,6 +229,7 @@ def get_exchange_html(data_list, stats):
         let chartInstance = null;
         let currentDays = 365; // default 1 year
         let currentFileLabel = '1y';
+        let filteredData = fullData;
         
         document.getElementById('latest-date').textContent = stats.latest_date;
         document.getElementById('val-1530').textContent = stats.latest_1530 ? stats.latest_1530.toLocaleString(undefined, {{minimumFractionDigits: 2}}) + ' 원' : '-';
@@ -364,7 +249,21 @@ def get_exchange_html(data_list, stats):
         }});
         
         function downloadExcel() {{
-            window.open(`usd_krw_${{currentFileLabel}}.xlsx`);
+            const worksheetData = filteredData.map(row => {{
+                const item = {{
+                    "날짜": row.date,
+                    "15:30 주간 종가 (원)": row.rate_1530 !== null ? row.rate_1530 : ""
+                }};
+                if ('rate_0200' in row) {{
+                    item["02:00 야간 종가 (원)"] = row.rate_0200 !== null ? row.rate_0200 : "";
+                    item["비고"] = row.is_prev ? "(전일 야간)" : "";
+                }}
+                return item;
+            }});
+            const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "USD_KRW_Data");
+            XLSX.writeFile(workbook, `usd_krw_${{currentFileLabel}}.xlsx`);
         }}
 
         function updateView() {{
@@ -373,7 +272,7 @@ def get_exchange_html(data_list, stats):
             currentFileLabel = mapping[currentDays] || '1y';
             
             // 데이터 슬라이싱
-            let filteredData = fullData;
+            filteredData = fullData;
             if(currentDays !== 1095) {{
                 // 대략적인 일자 슬라이싱 (실제 영업일 기준이 아니므로 끝에서 자름)
                 filteredData = fullData.slice(-currentDays);
