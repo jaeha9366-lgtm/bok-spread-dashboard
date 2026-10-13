@@ -1,219 +1,239 @@
-/* 위탁운용 분석보고서 내보내기 (PDF / 한글 HWPX) */
-(function () {
-  var FNAME = window.REPORT_FNAME || '위탁운용_분석보고서';
+/* 위탁운용 분석보고서 내보내기: A4 맞춤형 PDF 및 Word(.docx) 다운로드 */
 
-  /* ---------------- PDF ---------------- */
-  window.exportPdf = function () {
-    var b = document.getElementById('btnPdf');
-    b.disabled = true; b.textContent = '⏳ 생성 중...';
-    var el = document.querySelector('.wrap');
-    document.body.classList.add('pdf-mode');
-    Object.values(Chart.instances).forEach(function (c) { c.resize(); });
-    // 레이아웃 반영 후 캡처
-    setTimeout(function () {
-      html2pdf().set({
-        margin: [10, 8, 12, 8],
-        filename: FNAME + '.pdf',
-        image: { type: 'jpeg', quality: 0.95 },
-        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', windowWidth: 900 },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak: {
-          mode: ['css', 'legacy'],
-          before: ['#s2', '#s4', '#s5', '#s6'],
-          avoid: ['tr', '.fund', '.chart', '.kpi', 'h2', 'h3', '.need', '.note', 'li', '.mgr > h3']
-        }
-      }).from(el).save().finally(function () {
+// 1. PDF 내보내기 (html2pdf 기반, A4 780px 너비 맞춤으로 가로 잘림 0%, 블록 절단 방지)
+function exportPdf() {
+  const b = document.getElementById('btnPdf');
+  if (!b) return;
+  b.disabled = true;
+  b.textContent = '⏳ PDF 생성 중...';
+  
+  // PDF용 A4 너비 모드 활성화
+  document.body.classList.add('pdf-mode');
+  
+  // 차트들을 780px 너비에 맞게 리사이징
+  if (window.Chart && Chart.instances) {
+    Object.values(Chart.instances).forEach(c => c.resize());
+  }
+
+  setTimeout(() => {
+    const el = document.querySelector('.wrap');
+    const fname = window.REPORT_FNAME || '위탁운용_분석보고서';
+    
+    const opt = {
+      margin: [10, 6, 10, 6],
+      filename: fname + '.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        windowWidth: 800,
+        width: 780,
+        scrollY: 0
+      },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      pagebreak: {
+        mode: ['css', 'legacy'],
+        avoid: ['tr', '.fund', '.chart', '.kpi', 'h2', 'h3', '.need', '.note', '.mgr h3']
+      }
+    };
+
+    html2pdf().set(opt).from(el).save()
+      .catch(err => {
+        console.error('PDF export error:', err);
+        alert('PDF 생성 중 오류가 발생했습니다: ' + err);
+      })
+      .finally(() => {
         document.body.classList.remove('pdf-mode');
-        Object.values(Chart.instances).forEach(function (c) { c.resize(); });
-        b.disabled = false; b.textContent = '📄 PDF 저장';
+        if (window.Chart && Chart.instances) {
+          Object.values(Chart.instances).forEach(c => c.resize());
+        }
+        b.disabled = false;
+        b.textContent = '📄 PDF 저장';
       });
-    }, 400);
-  };
+  }, 400);
+}
 
-  /* ---------------- 한글(HWPX) ---------------- */
-  var NS = 'xmlns:ha="http://www.hancom.co.kr/hwpml/2011/app" xmlns:hp="http://www.hancom.co.kr/hwpml/2011/paragraph" ' +
-    'xmlns:hp10="http://www.hancom.co.kr/hwpml/2016/paragraph" xmlns:hs="http://www.hancom.co.kr/hwpml/2011/section" ' +
-    'xmlns:hc="http://www.hancom.co.kr/hwpml/2011/core" xmlns:hh="http://www.hancom.co.kr/hwpml/2011/head" ' +
-    'xmlns:hhs="http://www.hancom.co.kr/hwpml/2011/history" xmlns:hm="http://www.hancom.co.kr/hwpml/2011/master-page" ' +
-    'xmlns:hpf="http://www.hancom.co.kr/schema/2011/hpf" xmlns:dc="http://purl.org/dc/elements/1.1/" ' +
-    'xmlns:opf="http://www.idpf.org/2007/opf/"';
-  var XML = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
-  var PAGE_W = 42520; // 본문 폭 (A4, 좌우 여백 30mm)
-
-  // charPr: 0 본문, 1 굵게, 2 제목(큰 글씨), 3 소제목, 4 표(작은 글씨), 5 표 머리글(굵게), 6 주석
-  var CHARS = [
-    [1000, 0], [1000, 1], [2000, 1], [1200, 1], [800, 0], [800, 1], [850, 0]
-  ];
-  // paraPr: 0 왼쪽, 1 오른쪽, 2 가운데
-  var ALIGN = ['LEFT', 'RIGHT', 'CENTER'];
-
-  function esc(s) {
-    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+// 2. 한글/워드 문서 내보내기 (표 + 4개 차트 고해상도 이미지 포함 정식 .docx)
+function exportDocx() {
+  if (!window.JSZip) {
+    alert('Word 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.');
+    return;
   }
-  function clean(t) { return (t || '').replace(/\s+/g, ' ').trim(); }
-
-  function headerXml() {
-    var langs = ['HANGUL', 'LATIN', 'HANJA', 'JAPANESE', 'OTHER', 'SYMBOL', 'USER'];
-    var ff = langs.map(function (l) {
-      return '<hh:fontface lang="' + l + '" fontCnt="1"><hh:font id="0" face="맑은 고딕" type="TTF" isEmbedded="0"/></hh:fontface>';
-    }).join('');
-    function border(id, type, fill) {
-      var s = '<hh:borderFill id="' + id + '" threeD="0" shadow="0" centerLine="NONE" breakCellSeparateLine="0">' +
-        '<hh:slash type="NONE" Crooked="0" isCounter="0"/><hh:backSlash type="NONE" Crooked="0" isCounter="0"/>';
-      ['left', 'right', 'top', 'bottom'].forEach(function (d) {
-        s += '<hh:' + d + 'Border type="' + type + '" width="0.12 mm" color="#94A3B8"/>';
-      });
-      s += '<hh:diagonal type="NONE" width="0.1 mm" color="#000000"/>';
-      if (fill) s += '<hc:fillBrush><hc:winBrush faceColor="' + fill + '" hatchColor="#999999" alpha="0"/></hc:fillBrush>';
-      return s + '</hh:borderFill>';
-    }
-    var bf = border(1, 'NONE') + border(2, 'SOLID') + border(3, 'SOLID', '#F1F5F9');
-    var cp = CHARS.map(function (c, i) {
-      return '<hh:charPr id="' + i + '" height="' + c[0] + '" textColor="#000000" shadeColor="none" useFontSpace="0" useKerning="0" symMark="NONE" borderFillIDRef="1">' +
-        '<hh:fontRef hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>' +
-        '<hh:ratio hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/>' +
-        '<hh:spacing hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>' +
-        '<hh:relSz hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/>' +
-        '<hh:offset hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>' +
-        (c[1] ? '<hh:bold/>' : '') +
-        '<hh:underline type="NONE" shape="SOLID" color="#000000"/><hh:strikeout shape="NONE" color="#000000"/>' +
-        '<hh:outline type="NONE"/><hh:shadow type="NONE" color="#B2B2B2" offsetX="10" offsetY="10"/></hh:charPr>';
-    }).join('');
-    var pp = ALIGN.map(function (a, i) {
-      return '<hh:paraPr id="' + i + '" tabPrIDRef="0" condense="0" fontLineHeight="0" snapToGrid="1" suppressLineNumbers="0" checked="0">' +
-        '<hh:align horizontal="' + a + '" vertical="BASELINE"/><hh:heading type="NONE" idRef="0" level="0"/>' +
-        '<hh:breakSetting breakLatinWord="KEEP_WORD" breakNonLatinWord="KEEP_WORD" widowOrphan="0" keepWithNext="0" keepLines="0" pageBreakBefore="0" lineWrap="BREAK"/>' +
-        '<hh:autoSpacing eAsianEng="0" eAsianNum="0"/>' +
-        '<hh:margin><hc:intent value="0" unit="HWPUNIT"/><hc:left value="0" unit="HWPUNIT"/><hc:right value="0" unit="HWPUNIT"/><hc:prev value="0" unit="HWPUNIT"/><hc:next value="0" unit="HWPUNIT"/></hh:margin>' +
-        '<hh:lineSpacing type="PERCENT" value="150" unit="HWPUNIT"/>' +
-        '<hh:border borderFillIDRef="1" offsetLeft="0" offsetRight="0" offsetTop="0" offsetBottom="0" connect="0" ignoreMargin="0"/></hh:paraPr>';
-    }).join('');
-    return XML + '<hh:head ' + NS + ' version="1.4" secCnt="1"><hh:beginNum page="1" footnote="1" endnote="1" pic="1" tbl="1" equation="1"/>' +
-      '<hh:refList><hh:fontfaces itemCnt="7">' + ff + '</hh:fontfaces>' +
-      '<hh:borderFills itemCnt="3">' + bf + '</hh:borderFills>' +
-      '<hh:charProperties itemCnt="' + CHARS.length + '">' + cp + '</hh:charProperties>' +
-      '<hh:tabProperties itemCnt="1"><hh:tabPr id="0" autoTabLeft="0" autoTabRight="0"/></hh:tabProperties>' +
-      '<hh:paraProperties itemCnt="' + ALIGN.length + '">' + pp + '</hh:paraProperties>' +
-      '<hh:styles itemCnt="1"><hh:style id="0" type="PARA" name="바탕글" engName="Normal" paraPrIDRef="0" charPrIDRef="0" nextStyleIDRef="0" langID="1042" lockForm="0"/></hh:styles>' +
-      '</hh:refList><hh:compatibleDocument targetProgram="HWP2018"><hh:layoutCompatibility/></hh:compatibleDocument>' +
-      '<hh:docOption><hh:linkinfo path="" pageInherit="0" footnoteInherit="0"/></hh:docOption></hh:head>';
+  const b = document.getElementById('btnHwp');
+  if (b) {
+    b.disabled = true;
+    b.textContent = '⏳ 문서 생성 중...';
   }
 
-  var pid = 1000;
-  function para(text, ch, al) {
-    return '<hp:p id="' + (pid++) + '" paraPrIDRef="' + (al || 0) + '" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0">' +
-      '<hp:run charPrIDRef="' + (ch || 0) + '"><hp:t>' + esc(text) + '</hp:t></hp:run></hp:p>';
-  }
+  try {
+    const zip = new JSZip();
+    const XML = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+    const clean = t => (t || '').replace(/\s+/g, ' ').trim();
+    const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const FONT = '<w:rFonts w:ascii="맑은 고딕" w:hAnsi="맑은 고딕" w:eastAsia="맑은 고딕" w:cs="맑은 고딕"/>';
+    const TXT_W = 10206; // A4 폭 (dxa 단위)
 
-  function tableXml(tbl) {
-    var trs = Array.prototype.slice.call(tbl.querySelectorAll('tr'));
-    var occ = [], cells = [], ncols = 0;
-    trs.forEach(function (tr, r) {
-      occ[r] = occ[r] || [];
-      var c = 0;
-      Array.prototype.slice.call(tr.children).forEach(function (td) {
-        while (occ[r][c]) c++;
-        var cs = td.colSpan || 1, rs = td.rowSpan || 1;
-        for (var i = 0; i < rs; i++) for (var j = 0; j < cs; j++) { occ[r + i] = occ[r + i] || []; occ[r + i][c + j] = 1; }
-        cells.push({ r: r, c: c, cs: cs, rs: rs, th: td.tagName === 'TH', left: td.classList.contains('l'), text: clean(td.innerText) });
-        c += cs;
-        ncols = Math.max(ncols, c);
-      });
-    });
-    if (!cells.length) return '';
-    var nrows = trs.length;
-    var colW = Math.floor(PAGE_W / ncols), rowH = 1400;
-    var rowsXml = '';
-    for (var r = 0; r < nrows; r++) {
-      var tcs = '';
-      cells.filter(function (x) { return x.r === r; }).forEach(function (x) {
-        var w = colW * x.cs;
-        tcs += '<hp:tc name="" header="0" hasMargin="0" protect="0" editable="0" dirty="0" borderFillIDRef="' + (x.th ? 3 : 2) + '">' +
-          '<hp:subList id="" textDirection="HORIZONTAL" lineWrap="BREAK" vertAlign="CENTER" linkListIDRef="0" linkListNextIDRef="0" textWidth="0" textHeight="0" hasTextRef="0" hasNumRef="0">' +
-          para(x.text, x.th ? 5 : 4, x.left ? 0 : 1) + '</hp:subList>' +
-          '<hp:cellAddr colAddr="' + x.c + '" rowAddr="' + x.r + '"/><hp:cellSpan colSpan="' + x.cs + '" rowSpan="' + x.rs + '"/>' +
-          '<hp:cellSz width="' + w + '" height="' + (rowH * x.rs) + '"/><hp:cellMargin left="141" right="141" top="141" bottom="141"/></hp:tc>';
-      });
-      rowsXml += '<hp:tr>' + tcs + '</hp:tr>';
-    }
-    return '<hp:p id="' + (pid++) + '" paraPrIDRef="0" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0"><hp:run charPrIDRef="0">' +
-      '<hp:tbl id="' + (pid++) + '" zOrder="0" numberingType="TABLE" textWrap="TOP_AND_BOTTOM" textFlow="BOTH_SIDES" lock="0" dropcapstyle="None" pageBreak="CELL" repeatHeader="1" rowCnt="' + nrows + '" colCnt="' + ncols + '" cellSpacing="0" borderFillIDRef="2" noAdjust="0">' +
-      '<hp:sz width="' + (colW * ncols) + '" widthRelTo="ABSOLUTE" height="' + (rowH * nrows) + '" heightRelTo="ABSOLUTE" protect="0"/>' +
-      '<hp:pos treatAsChar="0" affectLSpacing="0" flowWithText="1" allowOverlap="0" holdAnchorAndSO="0" vertRelTo="PARA" horzRelTo="COLUMN" vertAlign="TOP" horzAlign="LEFT" vertOffset="0" horzOffset="0"/>' +
-      '<hp:outMargin left="0" right="0" top="0" bottom="283"/><hp:inMargin left="141" right="141" top="141" bottom="141"/>' +
-      rowsXml + '</hp:tbl></hp:run></hp:p>';
-  }
+    const run = (text, o) => {
+      o = o || {};
+      return '<w:r><w:rPr>' + FONT + (o.b ? '<w:b/>' : '') + (o.color ? '<w:color w:val="' + o.color + '"/>' : '') +
+        '<w:sz w:val="' + (o.sz || 20) + '"/><w:szCs w:val="' + (o.sz || 20) + '"/></w:rPr><w:t xml:space="preserve">' + esc(text) + '</w:t></w:r>';
+    };
 
-  function bodyXml() {
-    var out = '';
-    var root = document.querySelector('.wrap');
-    out += para(clean(root.querySelector('h1').innerText), 2, 0);
-    var sub = root.querySelector('.sub'); if (sub) out += para(clean(sub.innerText), 6, 0);
-    var badge = root.querySelector('.badge'); if (badge) out += para(clean(badge.innerText), 6, 1);
-    out += para('', 0, 0);
+    const para = (text, o) => {
+      o = o || {};
+      return '<w:p><w:pPr>' + (o.keep ? '<w:keepNext/>' : '') + (o.pb ? '<w:pageBreakBefore/>' : '') +
+        '<w:spacing w:before="' + (o.before || 0) + '" w:after="' + (o.after == null ? 60 : o.after) + '"/><w:jc w:val="' + (o.al || 'left') + '"/>' +
+        (o.bd ? '<w:pBdr><w:bottom w:val="single" w:sz="8" w:space="2" w:color="4F46E5"/></w:pBdr>' : '') +
+        '</w:pPr>' + (text === '' ? '' : run(text, o)) + '</w:p>';
+    };
+
+    const images = [];
+    const imageXml = (cv) => {
+      const n = images.length + 1;
+      images.push(cv.toDataURL('image/png').split(',')[1]);
+      const cx = 5600000;
+      const cy = Math.round(cx * cv.height / cv.width);
+      return '<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="' + cx + '" cy="' + cy + '"/>' +
+        '<wp:docPr id="' + n + '" name="chart' + n + '"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">' +
+        '<pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="' + n + '" name="chart' + n + '.png"/><pic:cNvPicPr/></pic:nvPicPr>' +
+        '<pic:blipFill><a:blip r:embed="rIdImg' + n + '"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>' +
+        '<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + cx + '" cy="' + cy + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>';
+    };
+
+    const chartImg = (box) => {
+      const cv = box.tagName === 'CANVAS' ? box : box.querySelector('canvas');
+      if (!cv || !cv.width) return '';
+      const c2 = document.createElement('canvas');
+      c2.width = cv.width;
+      c2.height = cv.height;
+      const g = c2.getContext('2d');
+      g.fillStyle = '#ffffff';
+      g.fillRect(0, 0, c2.width, c2.height);
+      g.drawImage(cv, 0, 0);
+      return imageXml(c2);
+    };
+
+    const tableXml = (tbl) => {
+      const trs = Array.from(tbl.querySelectorAll('tr'));
+      const occ = [], start = {};
+      let ncols = 0;
+      trs.forEach((tr, r) => {
+        occ[r] = occ[r] || [];
+        let c = 0;
+        Array.from(tr.children).forEach(td => {
+          while (occ[r][c]) c++;
+          const cs = td.colSpan || 1, rs = td.rowSpan || 1;
+          for (let i = 0; i < rs; i++) {
+            for (let j = 0; j < cs; j++) {
+              occ[r + i] = occ[r + i] || [];
+              occ[r + i][c + j] = { r0: r, c0: c, cs: cs };
+            }
+          }
+          start[r + ',' + c] = {
+            cs: cs, rs: rs, th: td.tagName === 'TH',
+            left: td.classList.contains('l'), text: clean(td.innerText),
+            pos: td.classList.contains('pos'), neg: td.classList.contains('neg')
+          };
+          c += cs;
+          ncols = Math.max(ncols, c);
+        });
+      });
+      if (!ncols) return '';
+      const w0 = ncols > 8 ? 1100 : 1500;
+      const first = Math.max(w0, Math.floor(TXT_W * 0.12));
+      const rest = Math.floor((TXT_W - first) / Math.max(ncols - 1, 1));
+      let grid = '', cw = [];
+      for (let k = 0; k < ncols; k++) {
+        cw[k] = k === 0 ? first : rest;
+        grid += '<w:gridCol w:w="' + cw[k] + '"/>';
+      }
+      const brd = ['top', 'left', 'bottom', 'right', 'insideH', 'insideV'].map(s => '<w:' + s + ' w:val="single" w:sz="4" w:space="0" w:color="CBD5E1"/>').join('');
+      let out = '<w:tbl><w:tblPr><w:tblW w:w="' + TXT_W + '" w:type="dxa"/><w:tblBorders>' + brd + '</w:tblBorders><w:tblLayout w:type="fixed"/>' +
+        '<w:tblCellMar><w:left w:w="60" w:type="dxa"/><w:right w:w="60" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>' + grid + '</w:tblGrid>';
+      for (let r = 0; r < trs.length; r++) {
+        out += '<w:tr><w:trPr><w:cantSplit/></w:trPr>';
+        for (let c = 0; c < ncols; c++) {
+          const o = occ[r] && occ[r][c], s = start[r + ',' + c];
+          if (s) {
+            let w = 0;
+            for (let q = 0; q < s.cs; q++) w += cw[c + q];
+            out += '<w:tc><w:tcPr><w:tcW w:w="' + w + '" w:type="dxa"/>' + (s.cs > 1 ? '<w:gridSpan w:val="' + s.cs + '"/>' : '') +
+              (s.rs > 1 ? '<w:vMerge w:val="restart"/>' : '') + (s.th ? '<w:shd w:val="clear" w:color="auto" w:fill="F1F5F9"/>' : '') + '<w:vAlign w:val="center"/></w:tcPr>' +
+              para(s.text, { sz: 16, b: s.th, al: s.left ? 'left' : 'right', after: 0, color: s.pos ? 'DC2626' : s.neg ? '2563EB' : null }) + '</w:tc>';
+          } else if (o && o.r0 < r && o.c0 === c) {
+            let w2 = 0;
+            for (let q2 = 0; q2 < o.cs; q2++) w2 += cw[c + q2];
+            out += '<w:tc><w:tcPr><w:tcW w:w="' + w2 + '" w:type="dxa"/>' + (o.cs > 1 ? '<w:gridSpan w:val="' + o.cs + '"/>' : '') + '<w:vMerge/></w:tcPr><w:p/></w:tc>';
+          }
+        }
+        out += '</w:tr>';
+      }
+      return out + '</w:tbl>' + para('', { after: 80 });
+    };
+
+    let out = '', root = document.querySelector('.wrap');
+    out += para(clean(root.querySelector('h1').innerText), { sz: 40, b: true, color: '4F46E5', after: 40 });
+    const sub = root.querySelector('.sub');
+    if (sub) out += para(clean(sub.innerText), { sz: 18, color: '64748B' });
+    const badge = root.querySelector('.badge');
+    if (badge) out += para(clean(badge.innerText), { sz: 18, color: '64748B', al: 'right' });
 
     function walk(node) {
-      Array.prototype.slice.call(node.children).forEach(function (el) {
-        var tag = el.tagName;
-        if (el.classList.contains('tools') || el.classList.contains('toc') || tag === 'CANVAS' || tag === 'SCRIPT' || tag === 'STYLE') return;
-        if (tag === 'H2') out += para('', 0, 0) + para(clean(el.innerText), 3, 0);
-        else if (tag === 'H3') out += para(clean(el.innerText), 1, 0);
-        else if (tag === 'TABLE') out += tableXml(el) + para('', 0, 0);
-        else if (tag === 'UL' || tag === 'OL') {
-          Array.prototype.slice.call(el.children).forEach(function (li) { out += para('· ' + clean(li.innerText), 0, 0); });
-        } else if (el.classList.contains('kpis')) {
-          Array.prototype.slice.call(el.children).forEach(function (k) {
-            out += para('· ' + clean(k.querySelector('.kl').innerText) + ': ' + clean(k.querySelector('.kv').innerText) + ' (' + clean(k.querySelector('.ks').innerText) + ')', 0, 0);
-          });
-        } else if (el.classList.contains('fund')) {
-          out += para(clean(el.querySelector('.fh').innerText), 1, 0);
-          Array.prototype.slice.call(el.querySelectorAll('li')).forEach(function (li) { out += para('· ' + clean(li.innerText), 0, 0); });
-        } else if (tag === 'P' || el.classList.contains('note')) out += para(clean(el.innerText), 6, 0);
-        else if (el.classList.contains('need')) out += para(clean(el.innerText), 6, 0);
-        else if (el.classList.contains('chart') || el.querySelector(':scope > canvas')) return;
-        else if (tag === 'FOOTER') out += para(clean(el.innerText), 6, 2);
+      Array.from(node.children).forEach(el => {
+        const t = el.tagName, cl = el.classList;
+        if (cl.contains('tools') || cl.contains('toc') || t === 'SCRIPT' || t === 'STYLE' || t === 'HEADER') return;
+        if (t === 'SECTION') {
+          if (['s2', 's4', 's5', 's6'].includes(el.id)) out += '<w:p><w:r><w:br w:type="page"/></w:r></w:p>';
+          walk(el);
+        } else if (t === 'H2') out += para(clean(el.innerText), { sz: 28, b: true, before: 160, bd: true, keep: true });
+        else if (t === 'H3') out += para(clean(el.innerText), { sz: 22, b: true, before: 120, keep: true });
+        else if (t === 'TABLE') out += tableXml(el);
+        else if (t === 'UL' || t === 'OL') Array.from(el.children).forEach(li => { out += para('· ' + clean(li.innerText), { sz: 19 }); });
+        else if (cl.contains('kpis')) Array.from(el.children).forEach(k => {
+          out += para('· ' + clean(k.querySelector('.kl').innerText) + ': ' + clean(k.querySelector('.kv').innerText) + ' (' + clean(k.querySelector('.ks').innerText) + ')', { sz: 19 });
+        });
+        else if (cl.contains('fund')) {
+          out += para(clean(el.querySelector('.fh').innerText), { sz: 20, b: true, before: 80, keep: true });
+          el.querySelectorAll('li').forEach(li => { out += para('· ' + clean(li.innerText), { sz: 18 }); });
+        } else if (cl.contains('chart')) out += chartImg(el);
+        else if (cl.contains('grid2')) Array.from(el.children).forEach(c => { out += chartImg(c); });
+        else if (cl.contains('note') || cl.contains('need') || t === 'P') out += para(clean(el.innerText), { sz: 17, color: '64748B' });
+        else if (t === 'FOOTER') out += para(clean(el.innerText), { sz: 16, color: '64748B', al: 'center', before: 200 });
+        else if (t === 'H1') return;
+        else if (t === 'DIV' && el.querySelector(':scope > table')) walk(el);
         else if (el.children.length) walk(el);
       });
     }
-    Array.prototype.slice.call(root.querySelectorAll(':scope > section, :scope > footer')).forEach(function (s) {
-      if (s.tagName === 'FOOTER') { out += para('', 0, 0) + para(clean(s.innerText), 6, 2); } else walk(s);
+    walk(root);
+
+    const NSW = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"';
+    zip.file('[Content_Types].xml', XML + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>');
+    zip.file('_rels/.rels', XML + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>');
+    let rels = '<Relationship Id="rIdSty" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>';
+    images.forEach((b64, i) => {
+      rels += '<Relationship Id="rIdImg' + (i + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/chart' + (i + 1) + '.png"/>';
+      zip.file('word/media/chart' + (i + 1) + '.png', b64, { base64: true });
     });
-    return out;
-  }
+    zip.file('word/_rels/document.xml.rels', XML + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' + rels + '</Relationships>');
+    zip.file('word/styles.xml', XML + '<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:docDefaults><w:rPrDefault><w:rPr>' + FONT + '<w:sz w:val="20"/><w:szCs w:val="20"/><w:lang w:val="ko-KR" w:eastAsia="ko-KR"/></w:rPr></w:rPrDefault></w:docDefaults><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style></w:styles>');
+    zip.file('word/document.xml', XML + '<w:document ' + NSW + '><w:body>' + out + '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1000" w:right="850" w:bottom="1000" w:left="850" w:header="500" w:footer="500" w:gutter="0"/></w:sectPr></w:body></w:document>');
 
-  function sectionXml() {
-    var first = '<hp:p id="1" paraPrIDRef="0" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0"><hp:run charPrIDRef="0">' +
-      '<hp:secPr id="" textDirection="HORIZONTAL" spaceColumns="1134" tabStop="8000" tabStopVal="4000" tabStopUnit="HWPUNIT" outlineShapeIDRef="0" memoShapeIDRef="0" textVerticalWidthHead="0" masterPageCnt="0">' +
-      '<hp:grid lineGrid="0" charGrid="0" wonggojiFormat="0"/><hp:startNum pageStartsOn="BOTH" page="0" pic="0" tbl="0" equation="0"/>' +
-      '<hp:visibility hideFirstHeader="0" hideFirstFooter="0" hideFirstMasterPage="0" border="SHOW_ALL" fill="SHOW_ALL" hideFirstPageNum="0" hideFirstEmptyLine="0" showLineNumber="0"/>' +
-      '<hp:lineNumberShape restartType="0" countBy="0" distance="0" startNumber="0"/>' +
-      '<hp:pagePr landscape="WIDELY" width="59528" height="84186" gutterType="LEFT_ONLY"><hp:margin header="4252" footer="4252" gutter="0" left="8504" right="8504" top="5668" bottom="4252"/></hp:pagePr>' +
-      '</hp:secPr><hp:ctrl><hp:colPr id="" type="NEWSPAPER" layout="LEFT" colCount="1" sameSz="1" sameGap="0"/></hp:ctrl><hp:t></hp:t></hp:run></hp:p>';
-    return XML + '<hs:sec ' + NS + '>' + first + bodyXml() + '</hs:sec>';
-  }
-
-  window.exportHwp = function () {
-    if (!window.JSZip) { alert('내보내기 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.'); return; }
-    pid = 1000;
-    var zip = new JSZip();
-    var NF = null;
-    var addFile = zip.file.bind(zip);
-    zip.file = function (n, d, o) { return addFile(n, d, Object.assign({ createFolders: false }, o || {})); };
-    zip.file('mimetype', 'application/hwp+zip', { compression: 'STORE' });
-    zip.file('version.xml', XML + '<hv:HCFVersion xmlns:hv="http://www.hancom.co.kr/hwpml/2011/version" tagetApplication="WORDPROCESSOR" major="5" minor="0" micro="5" buildNumber="0" os="1" xmlVersion="1.2" application="Hancom Office Hangul" appVersion="11, 0, 0, 0 WIN32LEWindows_Unknown_Version"/>');
-    zip.file('META-INF/container.xml', XML + '<ocf:container xmlns:ocf="urn:oasis:names:tc:opendocument:xmlns:container" xmlns:hpf="http://www.hancom.co.kr/schema/2011/hpf"><ocf:rootfiles><ocf:rootfile full-path="Contents/content.hpf" media-type="application/hwpml-package+xml"/></ocf:rootfiles></ocf:container>');
-    zip.file('META-INF/manifest.xml', XML + '<odf:manifest xmlns:odf="urn:oasis:names:tc:opendocument:xmlns:manifest:1.0"/>');
-    zip.file('Contents/content.hpf', XML + '<opf:package ' + NS + ' version="" unique-identifier="" id=""><opf:metadata><opf:title>' + esc(FNAME) + '</opf:title><opf:language>ko</opf:language></opf:metadata>' +
-      '<opf:manifest><opf:item id="header" href="Contents/header.xml" media-type="application/xml"/><opf:item id="section0" href="Contents/section0.xml" media-type="application/xml"/></opf:manifest>' +
-      '<opf:spine><opf:itemref idref="header" linear="yes"/><opf:itemref idref="section0" linear="yes"/></opf:spine></opf:package>');
-    zip.file('Contents/header.xml', headerXml());
-    zip.file('Contents/section0.xml', sectionXml());
-    zip.generateAsync({ type: 'blob', mimeType: 'application/hwp+zip', compression: 'DEFLATE' }).then(function (blob) {
-      var a = document.createElement('a');
+    const fname = window.REPORT_FNAME || '위탁운용_분석보고서';
+    zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', compression: 'DEFLATE' }).then(blob => {
+      const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = FNAME + '.hwpx';
+      a.download = fname + '.docx';
       a.click();
-      setTimeout(function () { URL.revokeObjectURL(a.href); }, 1500);
+      setTimeout(() => URL.revokeObjectURL(a.href), 1500);
     });
-  };
-})();
+  } catch (e) {
+    console.error('Word export error:', e);
+    alert('Word/한글 문서 생성 중 오류가 발생했습니다: ' + e);
+  } finally {
+    if (b) {
+      b.disabled = false;
+      b.textContent = '📝 한글/워드 저장(.docx)';
+    }
+  }
+}
