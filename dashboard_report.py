@@ -339,6 +339,8 @@ TEMPLATE = r"""<!DOCTYPE html>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="report_export.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <style>
 :root{{--bg:#f5f7fb;--card:#fff;--bd:#e2e8f0;--tx:#0f172a;--mu:#64748b;--ac:#4f46e5;--ac2:#0ea5e9;--pos:#dc2626;--neg:#2563eb}}
 *{{box-sizing:border-box}}body{{margin:0;background:var(--bg);color:var(--tx);font-family:'Inter',sans-serif;font-size:14px}}
@@ -406,7 +408,7 @@ h1{{-webkit-text-fill-color:var(--ac);background:none;color:var(--ac)}}
 </style></head><body><div class="wrap">
 <header><div><h1>위탁운용 분석보고서</h1><div class="sub">예금보험기금 국내채권형 유니버스 1~12호 · 운용사별 포트폴리오 분석</div></div>
 <div><div class="badge">기준일 {date}</div>
-<div class="tools"><button id="btnHwp" onclick="exportHwp()">📝 한글 저장</button><button id="btnPdf" onclick="exportPdf()">📄 PDF 저장</button><button id="btnPrint" onclick="window.print()">🖨️ 인쇄</button></div></div></header>
+<div class="tools"><button id="btnHwp" onclick="exportDocx()">📝 한글/워드 저장(.docx)</button><button id="btnPdf" onclick="exportPdf()">📄 PDF 저장</button><button id="btnPrint" onclick="window.print()">🖨️ 인쇄</button></div></div></header>
 <nav class="toc"><a href="#s1">1. 요약</a><a href="#s2">2. 듀레이션</a><a href="#s3">3. 누적 수익률</a><a href="#s4">4. 금리 커브</a><a href="#s5">5. 펀드별 비교</a><a href="#s6">6. 종합·시사점</a><a href="#s7">7. 매매·실현손익</a></nav>
 
 <section id="s1"><h2><span>1.</span>요약</h2>{kpi}{summary_points}
