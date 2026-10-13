@@ -71,7 +71,7 @@ def ai_summarize(title, body, rss_desc=""):
         for attempt in range(3):
             try:
                 response = gemini_client.models.generate_content(
-                    model="gemini-2.0-flash",
+                    model="gemini-3.8-flash",
                     contents=prompt
                 )
                 summary = response.text.strip()
