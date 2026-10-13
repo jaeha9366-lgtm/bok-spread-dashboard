@@ -338,6 +338,7 @@ TEMPLATE = r"""<!DOCTYPE html>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <style>
 :root{{--bg:#f5f7fb;--card:#fff;--bd:#e2e8f0;--tx:#0f172a;--mu:#64748b;--ac:#4f46e5;--ac2:#0ea5e9;--pos:#dc2626;--neg:#2563eb}}
 *{{box-sizing:border-box}}body{{margin:0;background:var(--bg);color:var(--tx);font-family:'Inter',sans-serif;font-size:14px}}
@@ -379,8 +380,29 @@ footer{{color:var(--mu);font-size:.78rem;text-align:center;margin-top:2rem}}
 .tools button{{border:1px solid var(--bd);background:var(--card);color:var(--tx);padding:.45rem .9rem;border-radius:8px;font-weight:600;font-size:.82rem;cursor:pointer;transition:all .2s;font-family:inherit}}
 .tools button:hover{{border-color:var(--ac);color:var(--ac);transform:translateY(-1px);box-shadow:0 4px 12px rgba(79,70,229,.12)}}
 .tools button:disabled{{opacity:.5;cursor:wait}}
-@media print{{@page{{size:A4;margin:12mm}}body{{background:#fff;font-size:11px}}.wrap{{max-width:none;padding:0}}.toc,.tools{{display:none!important}}section{{box-shadow:none;animation:none;break-inside:auto;page-break-inside:auto}}table,tr,.fund,.chart{{break-inside:avoid}}h1{{-webkit-text-fill-color:var(--ac)}}*{{-webkit-print-color-adjust:exact;print-color-adjust:exact}}}}
-.pdf-mode .toc,.pdf-mode .tools{{display:none!important}}.pdf-mode section{{animation:none;box-shadow:none}}
+@media print{{
+@page{{size:A4;margin:12mm 10mm}}
+body{{background:#fff;font-size:11px}}.wrap{{max-width:none;padding:0}}
+.toc,.tools{{display:none!important}}
+header{{margin-bottom:.8rem;border-bottom:2px solid var(--ac);padding-bottom:.5rem}}
+section{{box-shadow:none;animation:none;border:none;border-radius:0;padding:0;margin:0 0 1rem}}
+#s2,#s4,#s5,#s6{{break-before:page;page-break-before:always}}
+h2,h3{{break-after:avoid;page-break-after:avoid}}
+table{{font-size:.72rem;width:100%}}thead{{display:table-header-group}}
+tr,.fund,.chart,.kpi,.need,li,.mgr h3{{break-inside:avoid;page-break-inside:avoid}}
+.chart{{max-width:100%}}.chart canvas{{max-width:100%!important;height:auto!important}}
+td,th{{padding:.3rem .4rem}}table.nowrap td,table.nowrap th{{white-space:normal}}
+.fgrid,.grid2{{grid-template-columns:1fr 1fr;gap:.6rem}}
+h1{{-webkit-text-fill-color:var(--ac);background:none;color:var(--ac)}}
+*{{-webkit-print-color-adjust:exact;print-color-adjust:exact}}}}
+.pdf-mode .toc,.pdf-mode .tools{{display:none!important}}
+.pdf-mode .wrap{{width:900px;max-width:900px;padding:0 4px}}
+.pdf-mode body,.pdf-mode{{background:#fff}}
+.pdf-mode section{{animation:none;box-shadow:none;border:none;border-radius:0;padding:0 0 .6rem;margin:0 0 1rem}}
+.pdf-mode table{{font-size:.72rem}}.pdf-mode table.nowrap td,.pdf-mode table.nowrap th{{white-space:normal}}
+.pdf-mode td,.pdf-mode th{{padding:.3rem .4rem}}.pdf-mode div[style*="overflow-x"]{{overflow:visible!important}}
+.pdf-mode h1{{-webkit-text-fill-color:var(--ac);background:none;color:var(--ac)}}
+.pdf-mode .cell-bar{{display:none}}
 </style></head><body><div class="wrap">
 <header><div><h1>위탁운용 분석보고서</h1><div class="sub">예금보험기금 국내채권형 유니버스 1~12호 · 운용사별 포트폴리오 분석</div></div>
 <div><div class="badge">기준일 {date}</div>
@@ -428,27 +450,10 @@ new Chart(cBucket,{{type:'bar',data:{{labels:D.labels,datasets:Object.keys(D.buc
 const lc=['#cbd5e1','#94a3b8','#0ea5e9','#4f46e5'];
 function curve(el,key,title){{const c=D.curve[key];if(!c||!D.curve[key+'_t'])return;new Chart(el,{{type:'line',data:{{labels:D.curve[key+'_t'],datasets:Object.keys(c).map((d,i)=>({{label:d,data:c[d],borderColor:lc[i%4],backgroundColor:lc[i%4],tension:.3,borderWidth:i==Object.keys(c).length-1?3:2}}))}},options:{{maintainAspectRatio:false,plugins:{{title:{{display:true,text:title}}}},scales:{{y:{{ticks:{{callback:v=>v.toFixed(2)+'%'}}}}}}}}}});}}
 curve(cKtb,'ktb','국고채 금리 커브');curve(cUst,'ust','美국채 금리 커브');
-const FNAME='위탁운용_분석보고서_{date}'.replace(/\./g,'');
+window.REPORT_FNAME='위탁운용_분석보고서_{date}'.replace(/\./g,'');
 window.addEventListener('beforeprint',()=>Object.values(Chart.instances).forEach(c=>c.resize()));
-function exportPdf(){{
-  const b=document.getElementById('btnPdf');b.disabled=true;b.textContent='⏳ 생성 중...';
-  const el=document.querySelector('.wrap');document.body.classList.add('pdf-mode');
-  html2pdf().set({{margin:[8,8,8,8],filename:FNAME+'.pdf',image:{{type:'jpeg',quality:0.95}},html2canvas:{{scale:2,useCORS:true,backgroundColor:'#ffffff'}},jsPDF:{{unit:'mm',format:'a4',orientation:'portrait'}},pagebreak:{{mode:['css','legacy'],avoid:['tr','.fund','.chart','.kpi']}}}}).from(el).save()
-  .finally(()=>{{document.body.classList.remove('pdf-mode');b.disabled=false;b.textContent='📄 PDF 저장';}});
-}}
-function exportHwp(){{
-  // 한글(HWP)에서 바로 열 수 있는 문서(HTML 기반 .doc)로 저장. 차트는 이미지로 변환.
-  const clone=document.querySelector('.wrap').cloneNode(true);
-  clone.querySelectorAll('.toc,.tools,.cell-bar').forEach(e=>e.remove());
-  const src=document.querySelectorAll('.wrap canvas');
-  clone.querySelectorAll('canvas').forEach((cv,i)=>{{const img=document.createElement('img');img.src=src[i].toDataURL('image/png');img.width=640;cv.parentNode.replaceWith(img);}});
-  clone.querySelectorAll('h1').forEach(h=>h.style.cssText='color:#4f46e5');
-  const css=`body{{font-family:'맑은 고딕',sans-serif;font-size:10pt}}table{{border-collapse:collapse;width:100%}}th,td{{border:1px solid #cbd5e1;padding:3px 5px;text-align:right;font-size:9pt}}th{{background:#f1f5f9}}.l{{text-align:left}}h1{{font-size:20pt}}h2{{font-size:14pt;border-bottom:2px solid #4f46e5}}h3{{font-size:11pt}}.pos{{color:#dc2626}}.neg{{color:#2563eb}}.kpi{{display:inline-block;width:30%;border:1px solid #e0e7ff;padding:6px;margin:3px}}.need{{border:1px dashed #cbd5e1;padding:6px;color:#64748b}}`;
-  const html=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>${{FNAME}}</title><style>${{css}}</style></head><body>${{clone.innerHTML}}</body></html>`;
-  const blob=new Blob(['\ufeff'+html],{{type:'application/msword'}});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=FNAME+'.doc';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
-}}
-</script></body></html>"""
+</script>
+<script src="report_export.js"></script></body></html>"""
 
 
 def main():

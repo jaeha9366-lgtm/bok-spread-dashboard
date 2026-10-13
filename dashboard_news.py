@@ -33,7 +33,7 @@ def scrape_article_body(url):
                 text = article_div.get_text(separator=" ", strip=True)
                 # 기자 연락처, 광고성 문구 등 후미 정제
                 text = re.sub(r'\([\w@\. ]+\)\s*$', '', text).strip()
-                return text[:2000]  # 토큰 절약을 위해 최대 2000자
+                return text[:4000]  # 기사 전체 맥락 파악을 위해 최대 4000자
     except Exception as e:
         print(f"  Scraping error for {url}: {e}")
     return ""
@@ -50,39 +50,49 @@ def ai_summarize(title, body, rss_desc=""):
     if not context:
         return None
 
-    prompt = f"""다음은 한국 채권/외환 금융 뉴스 기사의 제목과 본문 발췌입니다.
-기사를 읽고 핵심 내용을 금융 전문가 시각에서 2~3문장으로 간결하게 재구성해 주세요.
+    prompt = f"""다음은 한국 채권/외환 금융 뉴스 기사의 제목과 본문입니다.
+기사 전체를 읽고 핵심(무슨 일이 있었는지, 원인, 시장 영향/전망)을 금융 전문가 시각에서 정리해 주세요.
 
 규칙:
-- 기사 문장을 그대로 복사하지 말고, 핵심 사실과 시장 영향을 자연스럽게 재구성하세요.
-- 금리, 환율, bp 등 구체적인 수치가 있으면 반드시 포함하세요.
-- 마크다운 기호(*,# 등) 없이 순수 텍스트로 작성하세요.
-- 2~3문장으로 마무리하세요.
+- 기사의 앞부분 문장을 그대로 가져오지 말고, 기사 전체에서 가장 중요한 내용을 골라 자신의 말로 재구성하세요.
+- 반드시 3줄 이내(줄바꿈으로 구분, 각 줄은 한 문장, 70자 내외)로 작성하세요.
+- 금리, 환율, bp 등 핵심 수치는 포함하되 불필요한 나열은 피하세요.
+- 마크다운 기호(*,#,- 등) 없이 순수 텍스트로 작성하세요.
+- 단, 기사가 금리/환율 수치 나열(금리표, 종가·마감 시황, 고시환율 등) 위주여서 분석 내용이 없으면 요약 대신 SKIP 한 단어만 출력하세요.
 
 [제목] {title}
 
 [본문/발췌]
-{context[:1500]}
+{context[:3500]}
 
 [요약]"""
 
     try:
         # 429 발생 시 최대 2회 재시도 (대기 후)
-        for attempt in range(3):
+        for attempt in range(5):
             try:
                 response = gemini_client.models.generate_content(
                     model="gemini-3.8-flash",
                     contents=prompt
                 )
                 summary = response.text.strip()
+                if summary.upper().startswith('SKIP'):
+                    return 'SKIP'
                 # 마크다운 기호 후처리 제거
                 summary = summary.replace('**', '').replace('##', '').replace('*', '')
-                return summary
+                lines = [re.sub(r'^[-•·\d\.\)\s]+', '', l).strip() for l in summary.splitlines() if l.strip()]
+                return '\n'.join(lines[:3])
             except Exception as inner_e:
                 err_str = str(inner_e)
-                if '429' in err_str and attempt < 2:
+                if '429' in err_str and 'PerDay' in err_str:
+                    raise inner_e  # 일일 한도 소진: 재시도해도 의미 없음
+                if '429' in err_str and attempt < 4:
                     wait_sec = 60  # 1분 대기 후 재시도
-                    print(f"  Rate limit hit. Waiting {wait_sec}s before retry ({attempt+1}/2)...")
+                    print(f"  Rate limit hit. Waiting {wait_sec}s before retry ({attempt+1}/4)...")
+                    time.sleep(wait_sec)
+                elif ('503' in err_str or 'UNAVAILABLE' in err_str) and attempt < 4:
+                    wait_sec = 15 * (attempt + 1)  # 일시적 과부하: 점증 대기 후 재시도
+                    print(f"  Model busy. Waiting {wait_sec}s before retry ({attempt+1}/4)...")
                     time.sleep(wait_sec)
                 else:
                     raise inner_e
@@ -152,8 +162,13 @@ def process_news():
 
         display_date = pub_date.strftime("%m/%d %H:%M")
 
-        # 1. 기사 본문 스크래핑 시도 (실패해도 계속 진행)
         print(f"  [{i+1}/{len(items)}] {title[:35]}...")
+        # 금리표/마감 시황/고시환율 등 수치 나열성 기사는 제외
+        if re.search(r'\[표\]|금리표|마감|고시|개장|시황', title):
+            print("    -> 수치 나열성 기사로 제외")
+            continue
+
+        # 1. 기사 본문 스크래핑 시도 (실패해도 계속 진행)
         body = scrape_article_body(link)
 
         # RSS description 정제 (HTML 태그 제거)
@@ -161,6 +176,10 @@ def process_news():
 
         # 2. Gemini AI 요약 (본문 OR RSS 발췌 사용)
         summary = ai_summarize(title, body, rss_desc=clean_rss)
+        if summary == 'SKIP':
+            print("    -> AI가 수치 나열성 기사로 판단하여 제외")
+            time.sleep(4)
+            continue
         if not summary:
             # AI 폴백: 완결 문장 추출
             summary = extract_lead_sentences(body, description)
@@ -233,7 +252,7 @@ def generate_news_html(daytime_news, nighttime_news, update_time):
                 </div>
                 <h3 class="news-title">{news['title']}</h3>
                 <div class="news-desc-container">
-                    <p class="news-desc">{news['description']}</p>
+                    <p class="news-desc">{news['description'].replace(chr(10), '<br>')}</p>
                 </div>
                 <div class="news-action">기사 원문 보기 ➔</div>
             </a>
