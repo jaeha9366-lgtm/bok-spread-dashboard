@@ -338,6 +338,7 @@ def generate_shell_index_html():
         <div class="nav-title">BOK Analytics Platform</div>
         <button class="tab active" onclick="switchTab('spread.html', this)">📊 주요 채권 금리/스프레드</button>
         <button class="tab" onclick="switchTab('exchange.html', this)">💵 원/달러 환율 추이</button>
+        <button class="tab" onclick="switchTab('report.html', this)">📑 위탁운용 분석보고서</button>
         <button class="tab" onclick="switchTab('news.html', this)">📰 채권/외환 주요 기사</button>
     </nav>
     <iframe id="content-frame" src="spread.html"></iframe>

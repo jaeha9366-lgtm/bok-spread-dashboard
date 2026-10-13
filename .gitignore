@@ -16,3 +16,5 @@ Thumbs.db
 
 # Dynamic Logs
 update_log.txt
+
+report_data/*.xls*
