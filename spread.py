@@ -313,7 +313,7 @@ def generate_shell_index_html():
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>한국은행 금융/경제 통합 대시보드</title>
+    <title>금융시장동향 분석 대시보드</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -335,7 +335,7 @@ def generate_shell_index_html():
 </head>
 <body>
     <nav>
-        <div class="nav-title">BOK Analytics Platform</div>
+        <div class="nav-title">KDIC FOI</div>
         <button class="tab active" onclick="switchTab('spread.html', this)">📊 주요 채권 금리/스프레드</button>
         <button class="tab" onclick="switchTab('exchange.html', this)">💵 원/달러 환율 추이</button>
         <button class="tab" onclick="switchTab('report.html', this)">📑 위탁운용 분석보고서</button>
@@ -989,7 +989,7 @@ def get_html_template(data_list, stats):
         <header>
             <div class="brand-row">
                 <div class="brand-section">
-                    <h1>BOK SPREAD TERMINAL</h1>
+                    <h1>주요 채권 금리</h1>
                     <p>한국은행 기준금리 대비 주요 채권 스프레드 5개년 통합 분석 대시보드</p>
                 </div>
                 <div class="action-buttons">
@@ -1314,11 +1314,11 @@ def get_html_template(data_list, stats):
         document.getElementById('anomalyText').innerHTML = `
             <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; width: 100%; gap: 1rem;">
                 <div style="font-size: 1.05rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-                    <span style="font-weight: 700; color: var(--text-muted); margin-right: 0.5rem; font-size: 1.1rem;">[채권별 스프레드 괴리율]</span>
+                    <span style="font-weight: 700; color: var(--text-muted); margin-right: 0.5rem; font-size: 1.1rem;">[채권별 스프레드]</span>
                     ${{allDivergencesText}}
                 </div>
                 <div style="font-size: 1.15rem; font-weight: 800; color: var(--text-primary); background: rgba(255,255,255,0.03); padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; gap: 0.5rem;">
-                    🚨 <span style="font-weight: 500; color: var(--text-secondary);">최대 괴리:</span> 
+                    🚨 <span style="font-weight: 500; color: var(--text-secondary);">최대 스프레드:</span> 
                     <span style="color: ${{activeColor}}; font-size: 1.35rem; font-weight: 900; text-shadow: 0 0 10px ${{activeColor}}50;">${{anomaly.name}}</span>
                     <span style="font-size: 1.05rem; font-weight: 500; color: var(--text-muted); margin-left: 0.35rem;">(괴리폭: <b style="color: ${{highlightColor}}; font-weight: 800; font-size: 1.25rem;">${{diffSign}}${{anomaly.diff.toFixed(2)}}%p</b>)</span>
                 </div>
