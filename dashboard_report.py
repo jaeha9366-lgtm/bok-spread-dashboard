@@ -397,14 +397,112 @@ td,th{{padding:.3rem .4rem}}table.nowrap td,table.nowrap th{{white-space:normal}
 .fgrid,.grid2{{grid-template-columns:1fr 1fr;gap:.6rem}}
 h1{{-webkit-text-fill-color:var(--ac);background:none;color:var(--ac)}}
 *{{-webkit-print-color-adjust:exact;print-color-adjust:exact}}}}
-.pdf-mode .toc,.pdf-mode .tools{{display:none!important}}
-.pdf-mode .wrap{{width:900px;max-width:900px;padding:0 4px}}
-.pdf-mode body,.pdf-mode{{background:#fff}}
-.pdf-mode section{{animation:none;box-shadow:none;border:none;border-radius:0;padding:0 0 .6rem;margin:0 0 1rem}}
-.pdf-mode table{{font-size:.72rem}}.pdf-mode table.nowrap td,.pdf-mode table.nowrap th{{white-space:normal}}
-.pdf-mode td,.pdf-mode th{{padding:.3rem .4rem}}.pdf-mode div[style*="overflow-x"]{{overflow:visible!important}}
-.pdf-mode h1{{-webkit-text-fill-color:var(--ac);background:none;color:var(--ac)}}
-.pdf-mode .cell-bar{{display:none}}
+.pdf-mode {{ background: #ffffff !important; }}
+.pdf-mode .wrap {{
+  width: 760px !important;
+  max-width: 760px !important;
+  padding: 8px 4px !important;
+  margin: 0 auto !important;
+}}
+.pdf-mode .toc, .pdf-mode .tools {{ display: none !important; }}
+.pdf-mode section {{
+  animation: none !important;
+  box-shadow: none !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 8px !important;
+  padding: 0.9rem !important;
+  margin-bottom: 0.9rem !important;
+  page-break-inside: auto !important;
+  break-inside: auto !important;
+}}
+.pdf-mode #s2, .pdf-mode #s4, .pdf-mode #s5, .pdf-mode #s6 {{
+  page-break-before: always !important;
+  break-before: page !important;
+}}
+.pdf-mode tr, .pdf-mode .fund, .pdf-mode .chart, .pdf-mode .kpi, .pdf-mode .need, .pdf-mode .note, .pdf-mode h2, .pdf-mode h3 {{
+  page-break-inside: avoid !important;
+  break-inside: avoid !important;
+}}
+.pdf-mode table {{
+  width: 100% !important;
+  table-layout: fixed !important;
+  font-size: 0.65rem !important;
+  margin: 0.2rem 0 !important;
+}}
+.pdf-mode th, .pdf-mode td {{
+  padding: 0.25rem 0.2rem !important;
+  word-break: break-all !important;
+  white-space: normal !important;
+}}
+.pdf-mode table.nowrap td, .pdf-mode table.nowrap th {{
+  white-space: normal !important;
+}}
+.pdf-mode div[style*="overflow-x"] {{
+  overflow: visible !important;
+}}
+.pdf-mode .kpis {{
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 0.4rem !important;
+}}
+.pdf-mode .kpi {{
+  flex: 1 1 30% !important;
+  padding: 0.5rem 0.6rem !important;
+}}
+.pdf-mode .kv {{
+  font-size: 1.25rem !important;
+}}
+.pdf-mode .grid2 {{
+  display: flex !important;
+  gap: 0.6rem !important;
+}}
+.pdf-mode .grid2 > .chart {{
+  flex: 1 1 50% !important;
+}}
+.pdf-mode .fgrid {{
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 0.6rem !important;
+}}
+.pdf-mode .fund {{
+  flex: 1 1 48% !important;
+  padding: 0.6rem 0.7rem !important;
+  margin-bottom: 0.4rem !important;
+  font-size: 0.74rem !important;
+}}
+.pdf-mode .fund ul {{
+  padding-left: 0.9rem !important;
+  line-height: 1.5 !important;
+  font-size: 0.73rem !important;
+}}
+.pdf-mode .chart {{
+  height: 250px !important;
+}}
+.pdf-mode .chart canvas {{
+  max-width: 100% !important;
+}}
+.pdf-mode h1 {{
+  font-size: 1.5rem !important;
+  -webkit-text-fill-color: var(--ac);
+  color: var(--ac);
+  background: none;
+}}
+.pdf-mode h2 {{
+  font-size: 1.1rem !important;
+  margin: 0 0 0.5rem !important;
+}}
+.pdf-mode h3 {{
+  font-size: 0.88rem !important;
+  margin: 0.6rem 0 0.3rem !important;
+}}
+.pdf-mode .pts {{
+  font-size: 0.78rem !important;
+  line-height: 1.5 !important;
+  padding-left: 0.9rem !important;
+}}
+.pdf-mode .cell-bar {{
+  display: none !important;
+}}
 </style></head><body><div class="wrap">
 <header><div><h1>위탁운용 분석보고서</h1><div class="sub">예금보험기금 국내채권형 유니버스 1~12호 · 운용사별 포트폴리오 분석</div></div>
 <div><div class="badge">기준일 {date}</div>

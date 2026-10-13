@@ -1,16 +1,15 @@
 /* 위탁운용 분석보고서 내보내기: A4 맞춤형 PDF 및 Word(.docx) 다운로드 */
 
-// 1. PDF 내보내기 (html2pdf 기반, A4 780px 너비 맞춤으로 가로 잘림 0%, 블록 절단 방지)
 function exportPdf() {
   const b = document.getElementById('btnPdf');
   if (!b) return;
   b.disabled = true;
   b.textContent = '⏳ PDF 생성 중...';
   
-  // PDF용 A4 너비 모드 활성화
+  // PDF용 A4 최적화 모드 활성화
   document.body.classList.add('pdf-mode');
   
-  // 차트들을 780px 너비에 맞게 리사이징
+  // 760px 폭에 맞춰 차트 리사이징
   if (window.Chart && Chart.instances) {
     Object.values(Chart.instances).forEach(c => c.resize());
   }
@@ -20,15 +19,16 @@ function exportPdf() {
     const fname = window.REPORT_FNAME || '위탁운용_분석보고서';
     
     const opt = {
-      margin: [10, 6, 10, 6],
+      margin: [10, 5, 10, 5],
       filename: fname + '.pdf',
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: {
         scale: 2,
         useCORS: true,
         backgroundColor: '#ffffff',
-        windowWidth: 800,
-        width: 780,
+        windowWidth: 760,
+        width: 760,
+        scrollX: 0,
         scrollY: 0
       },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
@@ -51,10 +51,9 @@ function exportPdf() {
         b.disabled = false;
         b.textContent = '📄 PDF 저장';
       });
-  }, 400);
+  }, 450);
 }
 
-// 2. 한글/워드 문서 내보내기 (표 + 4개 차트 고해상도 이미지 포함 정식 .docx)
 function exportDocx() {
   if (!window.JSZip) {
     alert('Word 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.');
@@ -149,7 +148,7 @@ function exportDocx() {
         grid += '<w:gridCol w:w="' + cw[k] + '"/>';
       }
       const brd = ['top', 'left', 'bottom', 'right', 'insideH', 'insideV'].map(s => '<w:' + s + ' w:val="single" w:sz="4" w:space="0" w:color="CBD5E1"/>').join('');
-      let out = '<w:tbl><w:tblPr><w:tblW w:w="' + TXT_W + '" w:type="dxa"/><w:tblBorders>' + brd + '</w:tblBorders><w:tblLayout w:type="fixed"/>' +
+      let out = '<w:tbl><w:tblPr><w:tblW w:w="' + TXT_W + '" w:type="dxa"/><w:tblBorders>' + brd + '</w:tblBorders><w:tblLayout w:type="fixed"/>'+
         '<w:tblCellMar><w:left w:w="60" w:type="dxa"/><w:right w:w="60" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>' + grid + '</w:tblGrid>';
       for (let r = 0; r < trs.length; r++) {
         out += '<w:tr><w:trPr><w:cantSplit/></w:trPr>';
