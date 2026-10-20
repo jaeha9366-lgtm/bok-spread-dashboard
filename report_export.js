@@ -1,57 +1,56 @@
 /* 위탁운용 분석보고서 내보내기: A4 맞춤형 PDF 및 Word(.docx) 다운로드 */
 
+function resizeCharts() {
+  if (window.Chart && Chart.instances) {
+    Object.values(Chart.instances).forEach(c => c.resize());
+  }
+}
+
+// PDF용 A4 폭(760px) 레이아웃으로 전환 후 html2pdf 작업 객체를 돌려준다.
+function buildPdfWorker() {
+  document.body.classList.add('pdf-mode');
+  resizeCharts();
+  return new Promise(resolve => setTimeout(resolve, 450)).then(() => {
+    const el = document.querySelector('.wrap');
+    const fname = window.REPORT_FNAME || '위탁운용_분석보고서';
+    // A4(794×1123px @96dpi), 여백 상하 38px·좌우 19px → 본문 756×1047px.
+    // mm 단위를 쓰면 페이지 나눔 계산(1046px)과 이미지 분할(1047px)의 반올림이 달라 페이지마다 1px씩 밀려
+    // 뒤쪽 페이지에서 글줄이 반으로 잘리므로, 정수 px 단위로 맞춘다. (.pdf-mode .wrap 폭도 756px)
+    const opt = {
+      margin: [38, 19, 38, 19],
+      filename: fname + '.pdf',
+      image: { type: 'jpeg', quality: 0.95 },
+      // windowWidth/width를 강제하면 html2canvas가 다른 폭으로 다시 배치하면서 캡처 위치가 어긋나 왼쪽이 잘린다.
+      html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0 },
+      jsPDF: { unit: 'px', format: [794, 1123], orientation: 'portrait', hotfixes: ['px_scaling'] },
+      pagebreak: { mode: ['css'], avoid: ['tr', '.chart', '.kpis', '.grid2', 'h2', 'h3', 'li', '.note', 'p', '.fund'] }
+    };
+    // html2pdf 작업 객체는 then()을 가진 thenable이라 그대로 반환하면 Promise가 풀어버리므로 객체로 감싼다.
+    return { worker: html2pdf().set(opt).from(el) };
+  });
+}
+
+function endPdfMode() {
+  document.body.classList.remove('pdf-mode');
+  resizeCharts();
+}
+
 function exportPdf() {
   const b = document.getElementById('btnPdf');
   if (!b) return;
   b.disabled = true;
   b.textContent = '⏳ PDF 생성 중...';
-  
-  // PDF용 A4 최적화 모드 활성화
-  document.body.classList.add('pdf-mode');
-  
-  // 760px 폭에 맞춰 차트 리사이징
-  if (window.Chart && Chart.instances) {
-    Object.values(Chart.instances).forEach(c => c.resize());
-  }
-
-  setTimeout(() => {
-    const el = document.querySelector('.wrap');
-    const fname = window.REPORT_FNAME || '위탁운용_분석보고서';
-    
-    const opt = {
-      margin: [10, 5, 10, 5],
-      filename: fname + '.pdf',
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        windowWidth: 760,
-        width: 760,
-        scrollX: 0,
-        scrollY: 0
-      },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-      pagebreak: {
-        mode: ['css', 'legacy'],
-        avoid: ['tr', '.fund', '.chart', '.kpi', 'h2', 'h3', '.need', '.note', '.mgr h3']
-      }
-    };
-
-    html2pdf().set(opt).from(el).save()
-      .catch(err => {
-        console.error('PDF export error:', err);
-        alert('PDF 생성 중 오류가 발생했습니다: ' + err);
-      })
-      .finally(() => {
-        document.body.classList.remove('pdf-mode');
-        if (window.Chart && Chart.instances) {
-          Object.values(Chart.instances).forEach(c => c.resize());
-        }
-        b.disabled = false;
-        b.textContent = '📄 PDF 저장';
-      });
-  }, 450);
+  buildPdfWorker()
+    .then(o => o.worker.save())
+    .catch(err => {
+      console.error('PDF export error:', err);
+      alert('PDF 생성 중 오류가 발생했습니다: ' + err);
+    })
+    .finally(() => {
+      endPdfMode();
+      b.disabled = false;
+      b.textContent = '📄 PDF 저장';
+    });
 }
 
 function exportDocx() {
@@ -181,9 +180,9 @@ function exportDocx() {
     function walk(node) {
       Array.from(node.children).forEach(el => {
         const t = el.tagName, cl = el.classList;
-        if (cl.contains('tools') || cl.contains('toc') || t === 'SCRIPT' || t === 'STYLE' || t === 'HEADER') return;
+        if (cl.contains('tools') || cl.contains('toc') || cl.contains('controls') || t === 'NAV' || t === 'SCRIPT' || t === 'STYLE' || t === 'HEADER') return;
         if (t === 'SECTION') {
-          if (['s2', 's4', 's5', 's6'].includes(el.id)) out += '<w:p><w:r><w:br w:type="page"/></w:r></w:p>';
+          if (cl.contains('pb') || ['s2', 's4', 's5', 's6'].includes(el.id)) out += '<w:p><w:r><w:br w:type="page"/></w:r></w:p>';
           walk(el);
         } else if (t === 'H2') out += para(clean(el.innerText), { sz: 28, b: true, before: 160, bd: true, keep: true });
         else if (t === 'H3') out += para(clean(el.innerText), { sz: 22, b: true, before: 120, keep: true });
@@ -196,7 +195,7 @@ function exportDocx() {
           out += para(clean(el.querySelector('.fh').innerText), { sz: 20, b: true, before: 80, keep: true });
           el.querySelectorAll('li').forEach(li => { out += para('· ' + clean(li.innerText), { sz: 18 }); });
         } else if (cl.contains('chart')) out += chartImg(el);
-        else if (cl.contains('grid2')) Array.from(el.children).forEach(c => { out += chartImg(c); });
+        else if (cl.contains('grid2')) walk(el);
         else if (cl.contains('note') || cl.contains('need') || t === 'P') out += para(clean(el.innerText), { sz: 17, color: '64748B' });
         else if (t === 'FOOTER') out += para(clean(el.innerText), { sz: 16, color: '64748B', al: 'center', before: 200 });
         else if (t === 'H1') return;
