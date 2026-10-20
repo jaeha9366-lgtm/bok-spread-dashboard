@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>위탁운용 분석보고서 (2025.12.31)</title>
+<meta name="description" content="예금보험기금 국내채권형 위탁운용 펀드 운용사별 듀레이션·만기구간·섹터·금리민감도 분석보고서">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="report_export.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<style>
+:root{--bg:#f5f7fb;--card:#fff;--bd:#e2e8f0;--tx:#0f172a;--mu:#64748b;--ac:#4f46e5;--ac2:#0ea5e9;--pos:#dc2626;--neg:#2563eb}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font-family:'Inter',sans-serif;font-size:14px}
+.wrap{max-width:1280px;margin:0 auto;padding:2.2rem 1.5rem 4rem}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap}
+h1{font-family:'Outfit',sans-serif;font-size:2rem;margin:0;background:linear-gradient(135deg,var(--ac),var(--ac2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sub{color:var(--mu);margin-top:.35rem}.badge{background:#eef2ff;color:var(--ac);padding:.45rem 1rem;border-radius:999px;font-weight:600;font-size:.85rem}
+.toc{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1.5rem;position:sticky;top:0;background:var(--bg);padding:.6rem 0;z-index:5}
+.toc a{text-decoration:none;color:var(--mu);background:var(--card);border:1px solid var(--bd);padding:.4rem .85rem;border-radius:8px;font-size:.82rem;font-weight:500;transition:all .2s}
+.toc a:hover{color:var(--ac);border-color:var(--ac);transform:translateY(-1px)}
+section{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:1.6rem 1.8rem;margin-bottom:1.2rem;box-shadow:0 2px 10px rgba(15,23,42,.04);animation:fade .5s ease both}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1}}
+h2{font-family:'Outfit',sans-serif;font-size:1.3rem;margin:0 0 1rem}h2 span{color:var(--ac);margin-right:.4rem}
+h3{font-size:1rem;margin:1.3rem 0 .6rem;color:#334155}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.8rem;margin-bottom:1.2rem}
+.kpi{background:linear-gradient(135deg,#f8faff,#eef2ff);border:1px solid #e0e7ff;border-radius:12px;padding:1rem 1.1rem;transition:transform .2s}
+.kpi:hover{transform:translateY(-2px)}.kl{color:var(--mu);font-size:.8rem;font-weight:600}
+.kv{font-family:'Outfit',sans-serif;font-size:1.7rem;font-weight:700;margin:.2rem 0}.kv small{font-size:.85rem;margin-left:.2rem;color:var(--mu)}.ks{color:var(--mu);font-size:.78rem}
+table{width:100%;border-collapse:collapse;font-size:.85rem;margin:.3rem 0 .8rem}
+th{background:#f1f5f9;color:#475569;font-weight:600;padding:.55rem .6rem;text-align:right;border-bottom:1px solid var(--bd);white-space:nowrap}
+td{padding:.5rem .6rem;text-align:right;border-bottom:1px solid #f1f5f9;position:relative}
+th.l,td.l{text-align:left}table.nowrap td,table.nowrap th{white-space:nowrap}tbody tr:hover td{background:#f8fafc}tr.sum td{font-weight:600;background:#fafafa}
+.pos{color:var(--pos)}.neg{color:var(--neg)}.muted{color:var(--mu)}
+td.hl{font-weight:700;color:var(--ac)}
+.cell-bar{position:absolute;left:0;top:20%;height:60%;width:var(--w);background:rgba(79,70,229,.08);border-radius:3px;max-width:100%}
+.tag{padding:.18rem .55rem;border-radius:6px;font-size:.75rem;font-weight:600;white-space:nowrap}
+.tag.long{background:#fee2e2;color:#b91c1c}.tag.short{background:#dbeafe;color:#1d4ed8}.tag.neu{background:#f1f5f9;color:#475569}
+.pts{line-height:1.85;padding-left:1.2rem;margin:.4rem 0}
+.need{margin-top:1rem;padding:.9rem 1.1rem;border:1.5px dashed #cbd5e1;border-radius:10px;background:#fcfcfd;color:var(--mu);font-size:.85rem}
+.need ul{margin:.4rem 0 0;padding-left:1.2rem}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem}@media(max-width:900px){.grid2{grid-template-columns:1fr}}
+.chart{position:relative;height:300px}
+.mgr{margin-top:1.2rem}.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:.9rem}@media(max-width:900px){.fgrid{grid-template-columns:1fr}}
+.fund{border:1px solid var(--bd);border-radius:12px;padding:1rem 1.1rem;transition:box-shadow .2s}.fund:hover{box-shadow:0 6px 20px rgba(79,70,229,.08)}
+.fh{display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem}.fund ul{margin:0;padding-left:1.1rem;line-height:1.75;font-size:.85rem}
+.note{color:var(--mu);font-size:.78rem;margin-top:.4rem}
+footer{color:var(--mu);font-size:.78rem;text-align:center;margin-top:2rem}
+.tools{display:flex;gap:.5rem;margin-top:.6rem;justify-content:flex-end}
+.tools button{border:1px solid var(--bd);background:var(--card);color:var(--tx);padding:.45rem .9rem;border-radius:8px;font-weight:600;font-size:.82rem;cursor:pointer;transition:all .2s;font-family:inherit}
+.tools button:hover{border-color:var(--ac);color:var(--ac);transform:translateY(-1px);box-shadow:0 4px 12px rgba(79,70,229,.12)}
+.tools button:disabled{opacity:.5;cursor:wait}
+@media print{
+@page{size:A4;margin:12mm 10mm}
+body{background:#fff;font-size:11px}.wrap{max-width:none;padding:0}
+.toc,.tools{display:none!important}
+header{margin-bottom:.8rem;border-bottom:2px solid var(--ac);padding-bottom:.5rem}
+section{box-shadow:none;animation:none;border:none;border-radius:0;padding:0;margin:0 0 1rem}
+#s2,#s4,#s5,#s6{break-before:page;page-break-before:always}
+h2,h3{break-after:avoid;page-break-after:avoid}
+table{font-size:.72rem;width:100%}thead{display:table-header-group}
+tr,.fund,.chart,.kpi,.need,li,.mgr h3{break-inside:avoid;page-break-inside:avoid}
+.chart{max-width:100%}.chart canvas{max-width:100%!important;height:auto!important}
+td,th{padding:.3rem .4rem}table.nowrap td,table.nowrap th{white-space:normal}
+.fgrid,.grid2{grid-template-columns:1fr 1fr;gap:.6rem}
+h1{-webkit-text-fill-color:var(--ac);background:none;color:var(--ac)}
+*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+.pdf-mode { background: #ffffff !important; }
+.pdf-mode .wrap {
+  width: 756px !important;
+  max-width: 756px !important;
+  padding: 8px 3px !important;
+  margin: 0 !important;
+}
+.pdf-mode .toc, .pdf-mode .tools { display: none !important; }
+.pdf-mode section {
+  animation: none !important;
+  box-shadow: none !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 8px !important;
+  padding: 0.9rem !important;
+  margin-bottom: 0.9rem !important;
+  page-break-inside: auto !important;
+  break-inside: auto !important;
+}
+.pdf-mode #s2, .pdf-mode #s4, .pdf-mode #s5, .pdf-mode #s6 {
+  page-break-before: always !important;
+  break-before: page !important;
+}
+.pdf-mode tr, .pdf-mode .fund, .pdf-mode .chart, .pdf-mode .kpi, .pdf-mode .need, .pdf-mode .note, .pdf-mode h2, .pdf-mode h3 {
+  page-break-inside: avoid !important;
+  break-inside: avoid !important;
+}
+.pdf-mode table {
+  width: 100% !important;
+  table-layout: fixed !important;
+  font-size: 0.65rem !important;
+  margin: 0.2rem 0 !important;
+}
+.pdf-mode th, .pdf-mode td {
+  padding: 0.25rem 0.2rem !important;
+  word-break: break-all !important;
+  white-space: normal !important;
+}
+.pdf-mode table.nowrap td, .pdf-mode table.nowrap th {
+  white-space: normal !important;
+}
+.pdf-mode div[style*="overflow-x"] {
+  overflow: visible !important;
+}
+.pdf-mode .kpis {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 0.4rem !important;
+}
+.pdf-mode .kpi {
+  flex: 1 1 30% !important;
+  padding: 0.5rem 0.6rem !important;
+}
+.pdf-mode .kv {
+  font-size: 1.25rem !important;
+}
+.pdf-mode .grid2 {
+  display: flex !important;
+  gap: 0.6rem !important;
+}
+.pdf-mode .grid2 > .chart {
+  flex: 1 1 50% !important;
+  min-width: 0 !important;
+}
+.pdf-mode .fgrid {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 0.6rem !important;
+}
+.pdf-mode .fund {
+  flex: 1 1 48% !important;
+  padding: 0.6rem 0.7rem !important;
+  margin-bottom: 0.4rem !important;
+  font-size: 0.74rem !important;
+}
+.pdf-mode .fund ul {
+  padding-left: 0.9rem !important;
+  line-height: 1.5 !important;
+  font-size: 0.73rem !important;
+}
+.pdf-mode .chart {
+  height: 250px !important;
+}
+.pdf-mode .chart canvas {
+  max-width: 100% !important;
+}
+.pdf-mode h1 {
+  font-size: 1.5rem !important;
+  -webkit-text-fill-color: var(--ac);
+  color: var(--ac);
+  background: none;
+}
+.pdf-mode h2 {
+  font-size: 1.1rem !important;
+  margin: 0 0 0.5rem !important;
+}
+.pdf-mode h3 {
+  font-size: 0.88rem !important;
+  margin: 0.6rem 0 0.3rem !important;
+}
+.pdf-mode .pts {
+  font-size: 0.78rem !important;
+  line-height: 1.5 !important;
+  padding-left: 0.9rem !important;
+}
+.pdf-mode .cell-bar {
+  display: none !important;
+}
+</style></head><body><div class="wrap">
+<a class="toc-back" href="report.html" style="display:inline-block;margin-bottom:.8rem;color:var(--ac);font-weight:600;text-decoration:none">← 주간·월간 운용분석보고서로</a>
+<header><div><h1>위탁운용 분석보고서</h1><div class="sub">예금보험기금 국내채권형 유니버스 1~12호 · 25년말 보유내역 기준 포트폴리오 분석</div></div>
+<div><div class="badge">기준일 2025.12.31</div>
+<div class="tools"><button id="btnHwp" onclick="exportDocx()">📝 한글/워드 저장(.docx)</button><button id="btnPdf" onclick="exportPdf()">📄 PDF 저장</button><button id="btnPrint" onclick="window.print()">🖨️ 인쇄</button></div></div></header>
+<nav class="toc"><a href="#s1">1. 요약</a><a href="#s2">2. 듀레이션</a><a href="#s3">3. 누적 수익률</a><a href="#s4">4. 금리 커브</a><a href="#s5">5. 펀드별 비교</a><a href="#s6">6. 종합·시사점</a><a href="#s7">7. 매매·실현손익</a></nav>
+
+<section id="s1"><h2><span>1.</span>요약</h2>
+    <div class="kpis">
+      <div class="kpi"><div class="kl">총 운용규모</div><div class="kv">4.26<small>조원</small></div><div class="ks">12개 펀드 · 6개 운용사</div></div>
+      <div class="kpi"><div class="kl">가중평균 듀레이션</div><div class="kv">4.37<small>년</small></div><div class="ks">은행형 4.35 / 생보형 4.45</div></div>
+      <div class="kpi"><div class="kl">가중평균 시가 YTM</div><div class="kv">2.89<small>%</small></div><div class="ks">채권 평가액 기준</div></div>
+      <div class="kpi"><div class="kl">평가손익 합계</div><div class="kv neg">-535<small>억원</small></div><div class="ks">장부가 대비 시가</div></div>
+      <div class="kpi"><div class="kl">DV01 (1bp)</div><div class="kv">17.79<small>억원</small></div><div class="ks">금리 1bp 상승 시 평가손실</div></div>
+    </div>
+    <ul class="pts">
+      <li><b>기간성과·원인분석</b>: 제공 자료가 2025.12.31 단일 시점 보유내역이므로 수익률·BM대비 성과는 산출 불가 → 아래 표의 <b>평가손익(장부가 대비)</b>과 <b>금리 민감도</b>로 대체 진단.</li>
+      <li><b>듀레이션</b>: 전체 4.37년. 최장 <b>4호(생보)</b>(4.72년), 최단 <b>7호(은행)</b>(3.92년)로 펀드 간 격차 0.80년.
+          생보형 평균(4.45년)이 은행형(4.35년)보다 길어 유형별 BM 차이가 반영된 것으로 판단.</li>
+      <li><b>캐리(수익원)</b>: 시가 YTM 최고는 <b>6호(생보)</b>(3.030%). 특수채·지방채 비중이 높을수록 YTM 우위.</li>
+      <li><b>BM대비 요인분해</b>: BM 구성(듀레이션·섹터) 자료 수령 시 듀레이션/커브/섹터/종목 효과로 분해 예정. 현재는 동일 유형 펀드 평균을 Peer BM으로 사용.</li>
+    </ul>
+<h3>펀드별 듀레이션 운용 스타일 (Peer = 동일 유형 평균: 은행형 4.35년 / 생보형 4.45년)</h3>
+<table><thead><tr><th class="l">운용사</th><th class="l">펀드</th><th>유형</th><th>운용규모(억)</th><th>듀레이션</th><th>Peer 대비</th><th>시가YTM(%)</th><th>잔존만기(년)</th><th>유동성</th><th>스타일</th><th>만기구조</th></tr></thead><tbody><tr><td class="l">운용사 A (1·2호)</td><td class="l">1호(은행)</td><td>은행</td>
+          <td>10,021</td><td><b>4.43</b></td><td class="pos">+0.08</td>
+          <td>2.876</td><td>4.73</td><td>4.9%</td>
+          <td><span class="tag neu">중립(Neutral)</span></td><td>분산형</td></tr><tr><td class="l">운용사 A (1·2호)</td><td class="l">2호(생보)</td><td>생보</td>
+          <td>2,729</td><td><b>4.57</b></td><td class="pos">+0.12</td>
+          <td>2.898</td><td>4.88</td><td>4.4%</td>
+          <td><span class="tag neu">중립(Neutral)</span></td><td>분산형</td></tr><tr><td class="l">운용사 B (3·4호)</td><td class="l">3호(은행)</td><td>은행</td>
+          <td>6,617</td><td><b>4.69</b></td><td class="pos">+0.34</td>
+          <td>2.915</td><td>5.10</td><td>2.4%</td>
+          <td><span class="tag long">장기화(Long)</span></td><td>분산형</td></tr><tr><td class="l">운용사 B (3·4호)</td><td class="l">4호(생보)</td><td>생보</td>
+          <td>1,833</td><td><b>4.72</b></td><td class="pos">+0.27</td>
+          <td>2.915</td><td>5.10</td><td>2.8%</td>
+          <td><span class="tag neu">중립(Neutral)</span></td><td>불릿형</td></tr><tr><td class="l">운용사 C (5·6호)</td><td class="l">5호(은행)</td><td>은행</td>
+          <td>5,371</td><td><b>4.18</b></td><td class="neg">-0.17</td>
+          <td>2.911</td><td>4.49</td><td>9.0%</td>
+          <td><span class="tag neu">중립(Neutral)</span></td><td>분산형</td></tr><tr><td class="l">운용사 C (5·6호)</td><td class="l">6호(생보)</td><td>생보</td>
+          <td>1,477</td><td><b>4.48</b></td><td class="pos">+0.03</td>
+          <td>3.030</td><td>4.78</td><td>12.1%</td>
+          <td><span class="tag neu">중립(Neutral)</span></td><td>분산형</td></tr><tr><td class="l">운용사 D (7·8호)</td><td class="l">7호(은행)</td><td>은행</td>
+          <td>4,375</td><td><b>3.92</b></td><td class="neg">-0.43</td>
+          <td>2.827</td><td>4.31</td><td>0.1%</td>
+          <td><span class="tag short">단기화(Short)</span></td><td>불릿형</td></tr><tr><td class="l">운용사 D (7·8호)</td><td class="l">8호(생보)</td><td>생보</td>
+          <td>1,212</td><td><b>4.02</b></td><td class="neg">-0.43</td>
+          <td>2.836</td><td>4.42</td><td>2.4%</td>
+          <td><span class="tag short">단기화(Short)</span></td><td>불릿형</td></tr><tr><td class="l">운용사 E (9·10호)</td><td class="l">9호(은행)</td><td>은행</td>
+          <td>3,690</td><td><b>4.30</b></td><td class="neg">-0.05</td>
+          <td>2.846</td><td>4.63</td><td>5.9%</td>
+          <td><span class="tag neu">중립(Neutral)</span></td><td>분산형</td></tr><tr><td class="l">운용사 E (9·10호)</td><td class="l">10호(생보)</td><td>생보</td>
+          <td>1,021</td><td><b>4.32</b></td><td class="neg">-0.13</td>
+          <td>2.794</td><td>4.61</td><td>5.8%</td>
+          <td><span class="tag neu">중립(Neutral)</span></td><td>분산형</td></tr><tr><td class="l">운용사 F (11·12호)</td><td class="l">11호(은행)</td><td>은행</td>
+          <td>3,356</td><td><b>4.33</b></td><td class="neg">-0.02</td>
+          <td>2.896</td><td>4.69</td><td>4.0%</td>
+          <td><span class="tag neu">중립(Neutral)</span></td><td>분산형</td></tr><tr><td class="l">운용사 F (11·12호)</td><td class="l">12호(생보)</td><td>생보</td>
+          <td>929</td><td><b>4.22</b></td><td class="neg">-0.23</td>
+          <td>2.887</td><td>4.55</td><td>0.8%</td>
+          <td><span class="tag neu">중립(Neutral)</span></td><td>분산형</td></tr></tbody></table>
+<div class="note">※ 운용사명은 펀드 코드쌍(1·2호, 3·4호 …) 기준 추정 표기. 실제 운용사명 제공 시 반영.</div></section>
+
+<section id="s2"><h2><span>2.</span>펀드별 월말 듀레이션</h2>
+<div class="chart" style="height:280px;margin-bottom:1rem"><canvas id="cDur"></canvas></div>
+<div style="overflow-x:auto"><table class="nowrap"><thead><tr><th class="l">운용사</th><th class="l">펀드</th><th>채권 듀레이션</th><th>펀드 듀레이션(MMF 포함)</th><th>1년 미만</th><th>1~3년</th><th>3~5년</th><th>5~10년</th><th>10년 이상</th></tr></thead><tbody><tr><td class=l rowspan=2>운용사 A (1·2호)</td><td class='l'>1호(은행)</td><td><b>4.43</b></td><td>4.21</td><td>0.02</td><td>0.64</td><td>1.61</td><td>1.42</td><td>0.73</td></tr><tr><td class='l'>2호(생보)</td><td><b>4.57</b></td><td>4.37</td><td>0.01</td><td>0.66</td><td>1.19</td><td>1.96</td><td>0.75</td></tr><tr><td class=l rowspan=2>운용사 B (3·4호)</td><td class='l'>3호(은행)</td><td><b>4.69</b></td><td>4.58</td><td>0.01</td><td>0.67</td><td>1.75</td><td>1.57</td><td>0.69</td></tr><tr><td class='l'>4호(생보)</td><td><b>4.72</b></td><td>4.59</td><td>0.01</td><td>0.53</td><td>1.87</td><td>1.86</td><td>0.44</td></tr><tr><td class=l rowspan=2>운용사 C (5·6호)</td><td class='l'>5호(은행)</td><td><b>4.18</b></td><td>3.81</td><td>0.02</td><td>0.72</td><td>1.53</td><td>1.71</td><td>0.21</td></tr><tr><td class='l'>6호(생보)</td><td><b>4.48</b></td><td>3.94</td><td>0.01</td><td>0.74</td><td>1.61</td><td>1.86</td><td>0.27</td></tr><tr><td class=l rowspan=2>운용사 D (7·8호)</td><td class='l'>7호(은행)</td><td><b>3.92</b></td><td>3.92</td><td>0.00</td><td>1.10</td><td>1.08</td><td>1.61</td><td>0.13</td></tr><tr><td class='l'>8호(생보)</td><td><b>4.02</b></td><td>3.92</td><td>0.00</td><td>1.08</td><td>1.11</td><td>1.71</td><td>0.12</td></tr><tr><td class=l rowspan=2>운용사 E (9·10호)</td><td class='l'>9호(은행)</td><td><b>4.30</b></td><td>4.04</td><td>0.01</td><td>0.94</td><td>1.82</td><td>1.05</td><td>0.48</td></tr><tr><td class='l'>10호(생보)</td><td><b>4.32</b></td><td>4.07</td><td>0.02</td><td>1.00</td><td>1.52</td><td>1.39</td><td>0.39</td></tr><tr><td class=l rowspan=2>운용사 F (11·12호)</td><td class='l'>11호(은행)</td><td><b>4.33</b></td><td>4.16</td><td>0.00</td><td>0.55</td><td>1.81</td><td>1.97</td><td>0.00</td></tr><tr><td class='l'>12호(생보)</td><td><b>4.22</b></td><td>4.18</td><td>0.00</td><td>0.71</td><td>1.81</td><td>1.70</td><td>0.00</td></tr></tbody></table></div>
+<div class="note">※ 만기구간 열 = 해당 구간의 듀레이션 기여도(년). 합계 = 채권 듀레이션.</div><div class='need'><b>📎 추가 자료 필요</b><ul><li>월말(또는 분기말) 보유내역 → 듀레이션 '추이' 산출</li></ul></div></section>
+
+<section id="s3"><h2><span>3.</span>누적 수익률 (기간별)</h2><p class="muted">보유내역 단일 시점 자료로는 기간 수익률 산출이 불가합니다.</p><div class='need'><b>📎 추가 자료 필요</b><ul><li>펀드별 월별 기준가/수익률</li><li>BM 지수 및 월별 BM 수익률</li></ul></div></section>
+
+<section id="s4"><h2><span>4.</span>시장 환경 : 금리 커브</h2>
+<div class="grid2"><div class="chart"><canvas id="cKtb"></canvas></div><div class="chart"><canvas id="cUst"></canvas></div></div>
+<h3>국고채 만기구간별 금리 (%)</h3><table><thead><tr><th class='l'>기준일</th><th>1Y</th><th>2Y</th><th>3Y</th><th>5Y</th><th>10Y</th><th>20Y</th><th>30Y</th></tr></thead><tbody><tr><td class='l'>2024-12-31</td><td>2.688</td><td>2.765</td><td>2.596</td><td>2.762</td><td>2.855</td><td>2.877</td><td>2.793</td></tr><tr><td class='l'>2025-06-30</td><td>2.302</td><td>2.449</td><td>2.452</td><td>2.591</td><td>2.805</td><td>2.832</td><td>2.747</td></tr><tr><td class='l'>2025-09-30</td><td>2.325</td><td>2.525</td><td>2.582</td><td>2.734</td><td>2.951</td><td>2.916</td><td>2.841</td></tr><tr><td class='l'>2025-12-31</td><td>2.556</td><td>2.796</td><td>2.953</td><td>3.240</td><td>3.385</td><td>3.357</td><td>3.258</td></tr><tr class='sum'><td class='l'>변화(2024-12→2025-12)</td><td class='neg'>-13bp</td><td class='pos'>+3bp</td><td class='pos'>+36bp</td><td class='pos'>+48bp</td><td class='pos'>+53bp</td><td class='pos'>+48bp</td><td class='pos'>+46bp</td></tr></tbody></table><h3>美국채 만기구간별 금리 (%)</h3><table><thead><tr><th class='l'>기준일</th><th>3M</th><th>1Y</th><th>2Y</th><th>5Y</th><th>10Y</th><th>30Y</th></tr></thead><tbody><tr><td class='l'>2024-12-31</td><td>4.370</td><td>4.160</td><td>4.250</td><td>4.380</td><td>4.580</td><td>4.780</td></tr><tr><td class='l'>2025-06-30</td><td>4.410</td><td>3.960</td><td>3.720</td><td>3.790</td><td>4.240</td><td>4.780</td></tr><tr><td class='l'>2025-09-30</td><td>4.020</td><td>3.680</td><td>3.600</td><td>3.740</td><td>4.160</td><td>4.730</td></tr><tr><td class='l'>2025-12-31</td><td>3.670</td><td>3.480</td><td>3.470</td><td>3.730</td><td>4.180</td><td>4.840</td></tr><tr class='sum'><td class='l'>변화(2024-12→2025-12)</td><td class='neg'>-70bp</td><td class='neg'>-68bp</td><td class='neg'>-78bp</td><td class='neg'>-65bp</td><td class='neg'>-40bp</td><td class='pos'>+6bp</td></tr></tbody></table><ul class='pts'><li>국고 3–10년 스프레드 43bp: 커브 스티프닝 구간으로 장기물 캐리·롤다운 유리.</li><li>美국채 2–10년 스프레드 71bp: 글로벌 장기금리 방향이 국내 장기물(10년 이상)에 전이될 수 있어 장기집중 펀드 모니터링 필요.</li></ul></section>
+
+<section id="s5"><h2><span>5.</span>펀드별 비교 분석</h2>
+<h3>[표] 펀드별 만기구간별 비중 (채권 평가액 기준, 2025.12.31)</h3>
+<table><thead><tr><th class="l">펀드</th><th>1년 미만</th><th>1~3년</th><th>3~5년</th><th>5~10년</th><th>10년 이상</th><th>국채</th><th>특수채</th><th>지방채</th><th>금융채</th></tr></thead><tbody><tr><td class='l'>1호(은행)</td><td class=''><div class='cell-bar' style='--w:3%'></div>3.1%</td><td class=''><div class='cell-bar' style='--w:32%'></div>32.0%</td><td class='hl'><div class='cell-bar' style='--w:40%'></div>40.2%</td><td class=''><div class='cell-bar' style='--w:19%'></div>19.1%</td><td class=''><div class='cell-bar' style='--w:6%'></div>5.7%</td><td>45.2%</td><td>46.2%</td><td>0.0%</td><td>8.5%</td></tr><tr><td class='l'>2호(생보)</td><td class=''><div class='cell-bar' style='--w:1%'></div>1.1%</td><td class='hl'><div class='cell-bar' style='--w:37%'></div>37.1%</td><td class=''><div class='cell-bar' style='--w:29%'></div>29.3%</td><td class=''><div class='cell-bar' style='--w:27%'></div>27.0%</td><td class=''><div class='cell-bar' style='--w:5%'></div>5.5%</td><td>47.2%</td><td>44.0%</td><td>0.0%</td><td>8.8%</td></tr><tr><td class='l'>3호(은행)</td><td class=''><div class='cell-bar' style='--w:1%'></div>1.1%</td><td class=''><div class='cell-bar' style='--w:29%'></div>29.0%</td><td class='hl'><div class='cell-bar' style='--w:43%'></div>43.3%</td><td class=''><div class='cell-bar' style='--w:21%'></div>20.7%</td><td class=''><div class='cell-bar' style='--w:6%'></div>5.9%</td><td>60.5%</td><td>39.5%</td><td>0.0%</td><td>0.0%</td></tr><tr><td class='l'>4호(생보)</td><td class=''><div class='cell-bar' style='--w:2%'></div>2.3%</td><td class=''><div class='cell-bar' style='--w:23%'></div>22.7%</td><td class='hl'><div class='cell-bar' style='--w:46%'></div>45.8%</td><td class=''><div class='cell-bar' style='--w:26%'></div>25.5%</td><td class=''><div class='cell-bar' style='--w:4%'></div>3.7%</td><td>61.8%</td><td>38.2%</td><td>0.0%</td><td>0.0%</td></tr><tr><td class='l'>5호(은행)</td><td class=''><div class='cell-bar' style='--w:6%'></div>5.6%</td><td class=''><div class='cell-bar' style='--w:32%'></div>31.6%</td><td class='hl'><div class='cell-bar' style='--w:38%'></div>37.5%</td><td class=''><div class='cell-bar' style='--w:23%'></div>23.2%</td><td class=''><div class='cell-bar' style='--w:2%'></div>2.0%</td><td>64.4%</td><td>29.6%</td><td>3.2%</td><td>2.8%</td></tr><tr><td class='l'>6호(생보)</td><td class=''><div class='cell-bar' style='--w:2%'></div>2.3%</td><td class=''><div class='cell-bar' style='--w:29%'></div>29.4%</td><td class='hl'><div class='cell-bar' style='--w:39%'></div>39.3%</td><td class=''><div class='cell-bar' style='--w:26%'></div>26.4%</td><td class=''><div class='cell-bar' style='--w:3%'></div>2.6%</td><td>65.5%</td><td>25.0%</td><td>6.8%</td><td>2.7%</td></tr><tr><td class='l'>7호(은행)</td><td class=''><div class='cell-bar' style='--w:0%'></div>0.0%</td><td class='hl'><div class='cell-bar' style='--w:52%'></div>52.1%</td><td class=''><div class='cell-bar' style='--w:27%'></div>27.1%</td><td class=''><div class='cell-bar' style='--w:20%'></div>20.2%</td><td class=''><div class='cell-bar' style='--w:1%'></div>0.7%</td><td>57.9%</td><td>32.3%</td><td>0.0%</td><td>9.9%</td></tr><tr><td class='l'>8호(생보)</td><td class=''><div class='cell-bar' style='--w:0%'></div>0.0%</td><td class='hl'><div class='cell-bar' style='--w:50%'></div>50.3%</td><td class=''><div class='cell-bar' style='--w:28%'></div>27.7%</td><td class=''><div class='cell-bar' style='--w:21%'></div>21.4%</td><td class=''><div class='cell-bar' style='--w:1%'></div>0.6%</td><td>57.6%</td><td>30.5%</td><td>0.0%</td><td>11.8%</td></tr><tr><td class='l'>9호(은행)</td><td class=''><div class='cell-bar' style='--w:2%'></div>1.8%</td><td class=''><div class='cell-bar' style='--w:40%'></div>39.7%</td><td class='hl'><div class='cell-bar' style='--w:42%'></div>41.7%</td><td class=''><div class='cell-bar' style='--w:14%'></div>13.8%</td><td class=''><div class='cell-bar' style='--w:3%'></div>3.0%</td><td>39.9%</td><td>36.5%</td><td>17.1%</td><td>6.4%</td></tr><tr><td class='l'>10호(생보)</td><td class=''><div class='cell-bar' style='--w:4%'></div>4.2%</td><td class='hl'><div class='cell-bar' style='--w:41%'></div>40.7%</td><td class=''><div class='cell-bar' style='--w:34%'></div>34.3%</td><td class=''><div class='cell-bar' style='--w:18%'></div>18.3%</td><td class=''><div class='cell-bar' style='--w:3%'></div>2.5%</td><td>48.2%</td><td>23.9%</td><td>20.2%</td><td>7.7%</td></tr><tr><td class='l'>11호(은행)</td><td class=''><div class='cell-bar' style='--w:0%'></div>0.0%</td><td class=''><div class='cell-bar' style='--w:28%'></div>27.9%</td><td class='hl'><div class='cell-bar' style='--w:44%'></div>43.7%</td><td class=''><div class='cell-bar' style='--w:28%'></div>28.4%</td><td class=''><div class='cell-bar' style='--w:0%'></div>0.0%</td><td>75.3%</td><td>24.7%</td><td>0.0%</td><td>0.0%</td></tr><tr><td class='l'>12호(생보)</td><td class=''><div class='cell-bar' style='--w:0%'></div>0.0%</td><td class=''><div class='cell-bar' style='--w:32%'></div>32.1%</td><td class='hl'><div class='cell-bar' style='--w:44%'></div>43.5%</td><td class=''><div class='cell-bar' style='--w:24%'></div>24.4%</td><td class=''><div class='cell-bar' style='--w:0%'></div>0.0%</td><td>78.4%</td><td>21.6%</td><td>0.0%</td><td>0.0%</td></tr></tbody></table>
+<div class="chart" style="height:340px"><canvas id="cBucket"></canvas></div><div class='need'><b>📎 추가 자료 필요</b><ul><li>기초 시점(예: 6월말) 보유내역 → 만기구간 비중 '변화' 산출</li></ul></div>
+<h3>펀드별 상세 분석</h3><div class='mgr'><h3>운용사 A (1·2호)</h3><div class='fgrid'><div class="fund">
+              <div class="fh"><b>1호(은행)</b><span class="tag neu">중립(Neutral)</span></div>
+              <ul>
+                <li><b>듀레이션 효과</b>: 4.43년 (Peer 대비 +0.08년). 금리 50bp 상승 시 약 <span class="neg">-211억원</span> 평가손 (DV01 4.22억).</li>
+                <li><b>만기 효과</b>: 3~5년 구간 비중 최대(40.2%), 듀레이션 기여는 3~5년(1.61년)에 집중 → 분산형.</li>
+                <li><b>섹터·신용</b>: 국채 45.2% / 비국채 54.8%, AAA 49.8%. 비국채 상위 발행사: 한국전력 14.8%, 도로공사 7.8%, 한국가스공사 7.3%.</li>
+                <li><b>종목 집중</b>: 최대 종목 국고02625-3003(25-3) (15.8%, 듀레이션 3.96). 보유 74종목, 유동성(MMF) 4.9%.</li>
+                <li><b>평가손익</b>: <span class="neg">-112.9억원</span> · 시가 YTM 2.876%.</li>
+              </ul></div><div class="fund">
+              <div class="fh"><b>2호(생보)</b><span class="tag neu">중립(Neutral)</span></div>
+              <ul>
+                <li><b>듀레이션 효과</b>: 4.57년 (Peer 대비 +0.12년). 금리 50bp 상승 시 약 <span class="neg">-60억원</span> 평가손 (DV01 1.19억).</li>
+                <li><b>만기 효과</b>: 1~3년 구간 비중 최대(37.1%), 듀레이션 기여는 5~10년(1.96년)에 집중 → 분산형.</li>
+                <li><b>섹터·신용</b>: 국채 47.2% / 비국채 52.8%, AAA 47.3%. 비국채 상위 발행사: 한국전력 16.0%, 한국가스공사 6.2%, 산업금융채권 5.9%.</li>
+                <li><b>종목 집중</b>: 최대 종목 국고02625-3003(25-3) (9.4%, 듀레이션 3.96). 보유 49종목, 유동성(MMF) 4.4%.</li>
+                <li><b>평가손익</b>: <span class="neg">-25.7억원</span> · 시가 YTM 2.898%.</li>
+              </ul></div></div></div><div class='mgr'><h3>운용사 B (3·4호)</h3><div class='fgrid'><div class="fund">
+              <div class="fh"><b>3호(은행)</b><span class="tag long">장기화(Long)</span></div>
+              <ul>
+                <li><b>듀레이션 효과</b>: 4.69년 (Peer 대비 +0.34년). 금리 50bp 상승 시 약 <span class="neg">-151억원</span> 평가손 (DV01 3.03억).</li>
+                <li><b>만기 효과</b>: 3~5년 구간 비중 최대(43.3%), 듀레이션 기여는 3~5년(1.75년)에 집중 → 분산형.</li>
+                <li><b>섹터·신용</b>: 국채 60.5% / 비국채 39.5%, AAA 39.5%. 비국채 상위 발행사: 한국전력 14.9%, 국가철도공단채권 5.9%, 한국가스공사 5.3%.</li>
+                <li><b>종목 집중</b>: 최대 종목 국고02625-3003(25-3) (12.8%, 듀레이션 3.96). 보유 50종목, 유동성(MMF) 2.4%.</li>
+                <li><b>평가손익</b>: <span class="neg">-89.8억원</span> · 시가 YTM 2.915%.</li>
+              </ul></div><div class="fund">
+              <div class="fh"><b>4호(생보)</b><span class="tag neu">중립(Neutral)</span></div>
+              <ul>
+                <li><b>듀레이션 효과</b>: 4.72년 (Peer 대비 +0.27년). 금리 50bp 상승 시 약 <span class="neg">-42억원</span> 평가손 (DV01 0.84억).</li>
+                <li><b>만기 효과</b>: 3~5년 구간 비중 최대(45.8%), 듀레이션 기여는 3~5년(1.87년)에 집중 → 불릿형.</li>
+                <li><b>섹터·신용</b>: 국채 61.8% / 비국채 38.2%, AAA 38.2%. 비국채 상위 발행사: 한국전력 15.6%, 국가철도공단채권 8.9%, 토지주택채권 3.3%.</li>
+                <li><b>종목 집중</b>: 최대 종목 국고02500-3009(25-8) (12.8%, 듀레이션 4.42). 보유 36종목, 유동성(MMF) 2.8%.</li>
+                <li><b>평가손익</b>: <span class="neg">-26.7억원</span> · 시가 YTM 2.915%.</li>
+              </ul></div></div></div><div class='mgr'><h3>운용사 C (5·6호)</h3><div class='fgrid'><div class="fund">
+              <div class="fh"><b>5호(은행)</b><span class="tag neu">중립(Neutral)</span></div>
+              <ul>
+                <li><b>듀레이션 효과</b>: 4.18년 (Peer 대비 -0.17년). 금리 50bp 상승 시 약 <span class="neg">-102억원</span> 평가손 (DV01 2.04억).</li>
+                <li><b>만기 효과</b>: 3~5년 구간 비중 최대(37.5%), 듀레이션 기여는 5~10년(1.71년)에 집중 → 분산형.</li>
+                <li><b>섹터·신용</b>: 국채 64.4% / 비국채 35.6%, AAA 31.2%. 비국채 상위 발행사: 토지주택채권 9.1%, 한국전력 7.5%, 한국가스공사 4.0%.</li>
+                <li><b>종목 집중</b>: 최대 종목 국고02250-2806(25-4) (13.9%, 듀레이션 2.39). 보유 45종목, 유동성(MMF) 9.0%.</li>
+                <li><b>평가손익</b>: <span class="neg">-62.5억원</span> · 시가 YTM 2.911%.</li>
+              </ul></div><div class="fund">
+              <div class="fh"><b>6호(생보)</b><span class="tag neu">중립(Neutral)</span></div>
+              <ul>
+                <li><b>듀레이션 효과</b>: 4.48년 (Peer 대비 +0.03년). 금리 50bp 상승 시 약 <span class="neg">-29억원</span> 평가손 (DV01 0.58억).</li>
+                <li><b>만기 효과</b>: 3~5년 구간 비중 최대(39.3%), 듀레이션 기여는 5~10년(1.86년)에 집중 → 분산형.</li>
+                <li><b>섹터·신용</b>: 국채 65.5% / 비국채 34.5%, AAA 24.6%. 비국채 상위 발행사: 토지주택채권 6.8%, 한국가스공사 5.4%, 토지주택채권(용지) 4.0%.</li>
+                <li><b>종목 집중</b>: 최대 종목 국고02250-2806(25-4) (14.0%, 듀레이션 2.39). 보유 39종목, 유동성(MMF) 12.1%.</li>
+                <li><b>평가손익</b>: <span class="neg">-14.2억원</span> · 시가 YTM 3.030%.</li>
+              </ul></div></div></div><div class='mgr'><h3>운용사 D (7·8호)</h3><div class='fgrid'><div class="fund">
+              <div class="fh"><b>7호(은행)</b><span class="tag short">단기화(Short)</span></div>
+              <ul>
+                <li><b>듀레이션 효과</b>: 3.92년 (Peer 대비 -0.43년). 금리 50bp 상승 시 약 <span class="neg">-86억원</span> 평가손 (DV01 1.71억).</li>
+                <li><b>만기 효과</b>: 1~3년 구간 비중 최대(52.1%), 듀레이션 기여는 5~10년(1.61년)에 집중 → 불릿형.</li>
+                <li><b>섹터·신용</b>: 국채 57.9% / 비국채 42.1%, AAA 42.1%. 비국채 상위 발행사: 한국전력 10.9%, 한국가스공사 7.5%, 토지주택채권 6.7%.</li>
+                <li><b>종목 집중</b>: 최대 종목 국고02625-3003(25-3) (16.7%, 듀레이션 3.96). 보유 31종목, 유동성(MMF) 0.1%.</li>
+                <li><b>평가손익</b>: <span class="neg">-62.1억원</span> · 시가 YTM 2.827%.</li>
+              </ul></div><div class="fund">
+              <div class="fh"><b>8호(생보)</b><span class="tag short">단기화(Short)</span></div>
+              <ul>
+                <li><b>듀레이션 효과</b>: 4.02년 (Peer 대비 -0.43년). 금리 50bp 상승 시 약 <span class="neg">-24억원</span> 평가손 (DV01 0.48억).</li>
+                <li><b>만기 효과</b>: 1~3년 구간 비중 최대(50.3%), 듀레이션 기여는 5~10년(1.71년)에 집중 → 불릿형.</li>
+                <li><b>섹터·신용</b>: 국채 57.6% / 비국채 42.4%, AAA 42.4%. 비국채 상위 발행사: 토지주택채권 10.2%, 한국전력 6.2%, 산업금융채권 5.0%.</li>
+                <li><b>종목 집중</b>: 최대 종목 국고03000-3412(24-13) (16.2%, 듀레이션 7.87). 보유 28종목, 유동성(MMF) 2.4%.</li>
+                <li><b>평가손익</b>: <span class="neg">-17.1억원</span> · 시가 YTM 2.836%.</li>
+              </ul></div></div></div><div class='mgr'><h3>운용사 E (9·10호)</h3><div class='fgrid'><div class="fund">
+              <div class="fh"><b>9호(은행)</b><span class="tag neu">중립(Neutral)</span></div>
+              <ul>
+                <li><b>듀레이션 효과</b>: 4.30년 (Peer 대비 -0.05년). 금리 50bp 상승 시 약 <span class="neg">-75억원</span> 평가손 (DV01 1.49억).</li>
+                <li><b>만기 효과</b>: 3~5년 구간 비중 최대(41.7%), 듀레이션 기여는 3~5년(1.82년)에 집중 → 분산형.</li>
+                <li><b>섹터·신용</b>: 국채 39.9% / 비국채 60.1%, AAA 43.0%. 비국채 상위 발행사: 한국전력 11.8%, 한국수자원공사 4.9%, 토지주택채권 4.6%.</li>
+                <li><b>종목 집중</b>: 최대 종목 국고02250-2806(25-4) (15.3%, 듀레이션 2.39). 보유 84종목, 유동성(MMF) 5.9%.</li>
+                <li><b>평가손익</b>: <span class="neg">-51.8억원</span> · 시가 YTM 2.846%.</li>
+              </ul></div><div class="fund">
+              <div class="fh"><b>10호(생보)</b><span class="tag neu">중립(Neutral)</span></div>
+              <ul>
+                <li><b>듀레이션 효과</b>: 4.32년 (Peer 대비 -0.13년). 금리 50bp 상승 시 약 <span class="neg">-21억원</span> 평가손 (DV01 0.42억).</li>
+                <li><b>만기 효과</b>: 1~3년 구간 비중 최대(40.7%), 듀레이션 기여는 3~5년(1.52년)에 집중 → 분산형.</li>
+                <li><b>섹터·신용</b>: 국채 48.2% / 비국채 51.8%, AAA 31.6%. 비국채 상위 발행사: 기업은행(신) 7.3%, 한국전력 6.4%, 도로공사 4.8%.</li>
+                <li><b>종목 집중</b>: 최대 종목 국고02250-2806(25-4) (19.8%, 듀레이션 2.39). 보유 45종목, 유동성(MMF) 5.8%.</li>
+                <li><b>평가손익</b>: <span class="neg">-15.9억원</span> · 시가 YTM 2.794%.</li>
+              </ul></div></div></div><div class='mgr'><h3>운용사 F (11·12호)</h3><div class='fgrid'><div class="fund">
+              <div class="fh"><b>11호(은행)</b><span class="tag neu">중립(Neutral)</span></div>
+              <ul>
+                <li><b>듀레이션 효과</b>: 4.33년 (Peer 대비 -0.02년). 금리 50bp 상승 시 약 <span class="neg">-70억원</span> 평가손 (DV01 1.40억).</li>
+                <li><b>만기 효과</b>: 3~5년 구간 비중 최대(43.7%), 듀레이션 기여는 5~10년(1.97년)에 집중 → 분산형.</li>
+                <li><b>섹터·신용</b>: 국채 75.3% / 비국채 24.7%, AAA 24.7%. 비국채 상위 발행사: 한국전력 16.1%, 한국도로공사고속도로건설채권 3.0%, 한국가스공사 2.3%.</li>
+                <li><b>종목 집중</b>: 최대 종목 국고02500-3009(25-8) (15.4%, 듀레이션 4.42). 보유 30종목, 유동성(MMF) 4.0%.</li>
+                <li><b>평가손익</b>: <span class="neg">-43.4억원</span> · 시가 YTM 2.896%.</li>
+              </ul></div><div class="fund">
+              <div class="fh"><b>12호(생보)</b><span class="tag neu">중립(Neutral)</span></div>
+              <ul>
+                <li><b>듀레이션 효과</b>: 4.22년 (Peer 대비 -0.23년). 금리 50bp 상승 시 약 <span class="neg">-19억원</span> 평가손 (DV01 0.39억).</li>
+                <li><b>만기 효과</b>: 3~5년 구간 비중 최대(43.5%), 듀레이션 기여는 3~5년(1.81년)에 집중 → 분산형.</li>
+                <li><b>섹터·신용</b>: 국채 78.4% / 비국채 21.6%, AAA 21.6%. 비국채 상위 발행사: 한국전력 17.3%, 한국가스공사 2.1%, 토지주택채권 2.1%.</li>
+                <li><b>종목 집중</b>: 최대 종목 국고02500-3009(25-8) (16.8%, 듀레이션 4.42). 보유 28종목, 유동성(MMF) 0.8%.</li>
+                <li><b>평가손익</b>: <span class="neg">-12.5억원</span> · 시가 YTM 2.887%.</li>
+              </ul></div></div></div></section>
+
+<section id="s6"><h2><span>6.</span>종합 및 시사점</h2>
+<h3>성과 귀속 (캐리 관점, 운용사별)</h3>
+<table><thead><tr><th>순위</th><th class="l">운용사</th><th>가중 시가YTM</th><th>듀레이션</th><th>YTM/듀레이션(bp/년)</th></tr></thead><tbody><tr><td>1</td><td class='l'>운용사 C (5·6호)</td><td>2.936%</td><td>4.25</td><td>69.2</td></tr><tr><td>2</td><td class='l'>운용사 B (3·4호)</td><td>2.915%</td><td>4.70</td><td>62.0</td></tr><tr><td>3</td><td class='l'>운용사 F (11·12호)</td><td>2.894%</td><td>4.31</td><td>67.2</td></tr><tr><td>4</td><td class='l'>운용사 A (1·2호)</td><td>2.881%</td><td>4.46</td><td>64.6</td></tr><tr><td>5</td><td class='l'>운용사 E (9·10호)</td><td>2.835%</td><td>4.30</td><td>65.9</td></tr><tr><td>6</td><td class='l'>운용사 D (7·8호)</td><td>2.829%</td><td>3.94</td><td>71.8</td></tr></tbody></table>
+<div class="note">※ YTM/듀레이션 = 듀레이션 1년당 확보한 캐리 → 금리위험 대비 효율성 지표.</div>
+<h3>듀레이션 판단</h3><ul class="pts"><li>생보형은 부채 듀레이션 매칭 목적상 장기, 은행형은 중단기 운용이 기본. 동일 유형 내 괴리가 큰 펀드는 BM 대비 액티브 베팅 여부 확인 필요.</li>
+<li>현 커브 기울기에서 장기 연장은 캐리·롤다운 이익이 있으나, 금리 반등 시 손실 폭이 크므로 DV01 한도 점검 권고.</li></ul>
+<h3>점검 필요사항</h3><ul class="pts"><li><b>1호(은행)</b>: 단일종목 국고02625-3003(25-3) 15.8% 집중</li><li><b>5호(은행)</b>: 유동성(MMF) 9.0% → 캐리 손실 요인, 대기자금 사유 확인</li><li><b>6호(생보)</b>: 유동성(MMF) 12.1% → 캐리 손실 요인, 대기자금 사유 확인</li><li><b>7호(은행)</b>: 단일종목 국고02625-3003(25-3) 16.7% 집중</li><li><b>8호(생보)</b>: 단일종목 국고03000-3412(24-13) 16.2% 집중</li><li><b>9호(은행)</b>: 유동성(MMF) 5.9% → 캐리 손실 요인, 대기자금 사유 확인</li><li><b>9호(은행)</b>: 단일종목 국고02250-2806(25-4) 15.3% 집중</li><li><b>10호(생보)</b>: 유동성(MMF) 5.8% → 캐리 손실 요인, 대기자금 사유 확인</li><li><b>10호(생보)</b>: 단일종목 국고02250-2806(25-4) 19.8% 집중</li><li><b>11호(은행)</b>: 단일종목 국고02500-3009(25-8) 15.4% 집중</li><li><b>12호(생보)</b>: 단일종목 국고02500-3009(25-8) 16.8% 집중</li></ul></section>
+
+<section id="s7"><h2><span>7.</span>기간 중 매매 규모 및 실현 손익</h2><p class="muted">보유내역 자료에는 매매내역이 포함되어 있지 않습니다.</p><div class='need'><b>📎 추가 자료 필요</b><ul><li>기간 중 매매내역(체결일·종목·수량·단가)</li><li>실현손익 내역</li></ul></div></section>
+<footer>원자료: (251231) 예금보험기금 국내채권형 유니버스 1~12호 취합본.xlsx · 생성: 2026-10-20 21:42 · 금리: 한국은행 ECOS / FRED</footer></div>
+<script>
+const D={"labels": ["1호(은행)", "2호(생보)", "3호(은행)", "4호(생보)", "5호(은행)", "6호(생보)", "7호(은행)", "8호(생보)", "9호(은행)", "10호(생보)", "11호(은행)", "12호(생보)"], "dur": [4.426, 4.572, 4.692, 4.717, 4.183, 4.482, 3.921, 4.016, 4.297, 4.318, 4.332, 4.216], "ytm": [2.876, 2.898, 2.915, 2.915, 2.911, 3.03, 2.827, 2.836, 2.846, 2.794, 2.896, 2.887], "buckets": {"1년 미만": [3.09, 1.12, 1.1, 2.28, 5.63, 2.33, 0.0, 0.0, 1.75, 4.22, 0.0, 0.0], "1~3년": [31.99, 37.12, 28.95, 22.73, 31.61, 29.37, 52.08, 50.31, 39.71, 40.7, 27.89, 32.11], "3~5년": [40.16, 29.31, 43.3, 45.81, 37.53, 39.28, 27.1, 27.65, 41.71, 34.28, 43.68, 43.51], "5~10년": [19.12, 26.97, 20.7, 25.51, 23.2, 26.4, 20.17, 21.44, 13.78, 18.28, 28.43, 24.38], "10년 이상": [5.65, 5.48, 5.95, 3.67, 2.04, 2.62, 0.65, 0.6, 3.04, 2.51, 0.0, 0.0]}, "curve": {"ktb": {"2024-12-31": [2.688, 2.765, 2.596, 2.762, 2.855, 2.877, 2.793], "2025-06-30": [2.302, 2.449, 2.452, 2.591, 2.805, 2.832, 2.747], "2025-09-30": [2.325, 2.525, 2.582, 2.734, 2.951, 2.916, 2.841], "2025-12-31": [2.556, 2.796, 2.953, 3.24, 3.385, 3.357, 3.258]}, "ust": {"2024-12-31": [4.37, 4.16, 4.25, 4.38, 4.58, 4.78], "2025-06-30": [4.41, 3.96, 3.72, 3.79, 4.24, 4.78], "2025-09-30": [4.02, 3.68, 3.6, 3.74, 4.16, 4.73], "2025-12-31": [3.67, 3.48, 3.47, 3.73, 4.18, 4.84]}, "ktb_t": ["1Y", "2Y", "3Y", "5Y", "10Y", "20Y", "30Y"], "ust_t": ["3M", "1Y", "2Y", "5Y", "10Y", "30Y"]}, "dates": ["2024-12-31", "2025-06-30", "2025-09-30", "2025-12-31"], "peer": [4.35, 4.448, 4.35, 4.448, 4.35, 4.448, 4.35, 4.448, 4.35, 4.448, 4.35, 4.448]};
+Chart.defaults.font.family="Inter";Chart.defaults.color="#64748b";
+new Chart(cDur,{type:'bar',data:{labels:D.labels,datasets:[{label:'듀레이션',data:D.dur,backgroundColor:'rgba(79,70,229,.75)',borderRadius:6},{label:'Peer 평균',data:D.peer,type:'line',borderColor:'#f59e0b',pointRadius:0,borderDash:[5,4]}]},options:{maintainAspectRatio:false,plugins:{title:{display:true,text:'펀드별 듀레이션 vs Peer'}}}});
+const cols=['#c7d2fe','#93c5fd','#60a5fa','#4f46e5','#312e81'];
+new Chart(cBucket,{type:'bar',data:{labels:D.labels,datasets:Object.keys(D.buckets).map((k,i)=>({label:k,data:D.buckets[k],backgroundColor:cols[i]}))},options:{maintainAspectRatio:false,scales:{x:{stacked:true},y:{stacked:true,max:100,ticks:{callback:v=>v+'%'}}},plugins:{title:{display:true,text:'만기구간별 비중'}}}});
+const lc=['#cbd5e1','#94a3b8','#0ea5e9','#4f46e5'];
+function curve(el,key,title){const c=D.curve[key];if(!c||!D.curve[key+'_t'])return;new Chart(el,{type:'line',data:{labels:D.curve[key+'_t'],datasets:Object.keys(c).map((d,i)=>({label:d,data:c[d],borderColor:lc[i%4],backgroundColor:lc[i%4],tension:.3,borderWidth:i==Object.keys(c).length-1?3:2}))},options:{maintainAspectRatio:false,plugins:{title:{display:true,text:title}},scales:{y:{ticks:{callback:v=>v.toFixed(2)+'%'}}}}});}
+curve(cKtb,'ktb','국고채 금리 커브');curve(cUst,'ust','美국채 금리 커브');
+window.REPORT_FNAME='위탁운용_분석보고서_2025.12.31'.replace(/\./g,'');
+window.addEventListener('beforeprint',()=>Object.values(Chart.instances).forEach(c=>c.resize()));
+</script>
+<script src="report_export.js"></script></body></html>
