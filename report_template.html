@@ -63,11 +63,25 @@ tr.grp td{background:#eef2ff;color:var(--ac);font-weight:700;text-align:left}
 .empty{color:var(--mu);padding:.8rem 0}
 footer{color:var(--mu);font-size:.77rem;text-align:center;margin-top:2rem;line-height:1.7}
 footer a{color:var(--ac)}
+.upl-bg{position:fixed;inset:0;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;z-index:50}
+.upl{width:560px;max-width:94vw;max-height:90vh;overflow:auto;background:#fff;border-radius:14px;padding:1.3rem 1.4rem;box-shadow:0 20px 50px rgba(15,23,42,.25)}
+.upl-h{display:flex;justify-content:space-between;align-items:center;font-size:1.05rem}
+.upl-x{border:0;background:none;font-size:1.1rem;cursor:pointer;color:var(--mu)}
+.upl-d{color:var(--mu);font-size:.82rem;line-height:1.6;margin:.5rem 0 .9rem}
+.upl-l{display:block;font-weight:600;font-size:.84rem;margin:.7rem 0 .35rem}
+.upl-l a{color:var(--ac);font-weight:500}.upl-hint{color:var(--mu);font-weight:400;font-size:.76rem}
+.upl input[type=file],.upl input[type=password]{width:100%;padding:.55rem .6rem;border:1px solid var(--bd);border-radius:8px;font-family:inherit}
+.upl-c{display:flex;gap:.4rem;align-items:center;font-size:.8rem;color:#475569;margin:.5rem 0 .8rem}
+.upl-list{list-style:none;padding:0;margin:.4rem 0;font-size:.82rem;line-height:1.7}.upl-list span{color:var(--mu)}.upl-list .bad{color:var(--pos)}
+.upl-go{width:100%;padding:.65rem;border:0;border-radius:9px;background:var(--ac);color:#fff;font-weight:700;cursor:pointer;font-family:inherit}
+.upl-go:disabled{opacity:.5;cursor:not-allowed}
+.upl-log{font-size:.8rem;color:#334155;margin-top:.7rem;line-height:1.7}
+.upl-st{font-size:.85rem;margin-top:.4rem;font-weight:600}.upl-st a{color:var(--ac)}
 @media print{
   @page{size:A4;margin:12mm 10mm}
   body{background:#fff;font-size:10.5px}
   .wrap{max-width:none;padding:0}
-  .toc,.tools,.controls{display:none!important}
+  .toc,.tools,.controls,.upl-bg{display:none!important}
   header{margin-bottom:.6rem;border-bottom:2px solid var(--ac);padding-bottom:.4rem}
   section{box-shadow:none;border:none;border-radius:0;padding:0;margin:0 0 .9rem}
   section.pb{break-before:page;page-break-before:always}
@@ -83,7 +97,7 @@ footer a{color:var(--ac)}
 /* PDF 저장(html2pdf) 시 A4 본문 폭(756px)에 맞춤. 섹션은 이어서 배치하고 표 행·차트·카드는 쪼개지지 않게 처리 */
 .pdf-mode{background:#fff!important}
 .pdf-mode .wrap{width:756px!important;max-width:756px!important;padding:0 3px!important;margin:0!important}
-.pdf-mode .toc,.pdf-mode .tools,.pdf-mode .controls{display:none!important}
+.pdf-mode .toc,.pdf-mode .tools,.pdf-mode .controls,.pdf-mode .upl-bg{display:none!important}
 .pdf-mode header{border-bottom:2px solid var(--ac);padding-bottom:.4rem;margin-bottom:.6rem}
 .pdf-mode h1{font-size:1.5rem}
 .pdf-mode section{box-shadow:none;border:0;border-top:1px solid #e2e8f0;border-radius:0;padding:.7rem 0 .2rem;margin:0}
@@ -102,7 +116,7 @@ footer a{color:var(--ac)}
 <header>
   <div><h1>위탁운용 운용분석보고서</h1><div class="sub">예금보험기금 위탁운용 펀드 · 국내채권형 유니버스 / 일임 채권형 / 해외채권형</div></div>
   <div class="hright"><div class="badge" id="badge">-</div>
-    <div class="tools"><button id="btnHwp" onclick="exportDocx()">📝 한글/워드 저장(.docx)</button><button id="btnPdf" onclick="exportPdf()">📄 PDF 저장</button><button id="btnPrint" onclick="window.print()">🖨️ 인쇄</button><button id="btnLock" onclick="window.__reportLock && window.__reportLock()" title="저장된 로그인 정보를 지우고 잠급니다">🔒 잠금</button></div>
+    <div class="tools"><button id="btnUpload" onclick="window.openUploadPanel && window.openUploadPanel()" title="엑셀 자료를 올려 보고서를 다시 만듭니다">📤 자료 업로드</button><button id="btnHwp" onclick="exportDocx()">📝 한글/워드 저장(.docx)</button><button id="btnPdf" onclick="exportPdf()">📄 PDF 저장</button><button id="btnPrint" onclick="window.print()">🖨️ 인쇄</button><button id="btnLock" onclick="window.__reportLock && window.__reportLock()" title="저장된 로그인 정보를 지우고 잠급니다">🔒 잠금</button></div>
   </div>
 </header>
 <div class="controls">
@@ -118,4 +132,5 @@ footer a{color:var(--ac)}
 <script>window.REPORT_DATA = __REPORT_DATA__;</script>
 <script src="report_app.js"></script>
 <script src="report_export.js"></script>
+<script src="report_upload.js"></script>
 </body></html>

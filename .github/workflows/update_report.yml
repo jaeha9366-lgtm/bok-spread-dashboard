@@ -1,0 +1,71 @@
+name: Update Report (uploaded data)
+
+# 보고서 화면에서 업로드한 암호화 자료(report_data_enc/*.enc)가 올라오면
+# 복호화 → 보고서 생성 → 다시 암호화된 report.html 을 커밋한다.
+# 필요한 Secrets: REPORT_PASSWORD (보고서 비밀번호), BOK_API_KEY (한국은행 ECOS)
+on:
+  push:
+    branches: [main]
+    paths: ['report_data_enc/**']
+  workflow_dispatch:
+
+concurrency:
+  group: report-build
+  cancel-in-progress: false
+
+jobs:
+  build-report:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check secrets
+        env:
+          REPORT_PASSWORD: ${{ secrets.REPORT_PASSWORD }}
+        run: |
+          if [ -z "$REPORT_PASSWORD" ]; then
+            echo "::error::REPORT_PASSWORD Secret이 없습니다. Settings > Secrets and variables > Actions 에 등록해 주세요."
+            exit 1
+          fi
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Set up Python environment
+        run: uv python install
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Decrypt uploaded data
+        env:
+          REPORT_PASSWORD: ${{ secrets.REPORT_PASSWORD }}
+        run: uv run report_inputs.py decrypt
+
+      - name: Build reports
+        env:
+          REPORT_PASSWORD: ${{ secrets.REPORT_PASSWORD }}
+          BOK_API_KEY: ${{ secrets.BOK_API_KEY }}
+        run: |
+          uv run dashboard_report.py
+          if ls report_data/*취합본* >/dev/null 2>&1; then uv run dashboard_report_holdings.py; fi
+
+      - name: Remove decrypted data
+        if: always()
+        run: rm -rf report_data/*.xls*
+
+      - name: Commit and push
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add report.html report_holdings.html
+          if git diff --staged --quiet; then echo "변경 없음"; exit 0; fi
+          git commit -m "chore: 위탁운용 보고서 자동 생성 (업로드 자료 반영)"
+          for i in 1 2 3; do
+            git pull --rebase origin main && git push origin HEAD:main && exit 0
+            sleep 10
+          done
+          exit 1

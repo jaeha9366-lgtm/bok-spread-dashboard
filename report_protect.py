@@ -11,6 +11,7 @@ import getpass
 import hashlib
 import json
 import os
+import sys
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from dotenv import load_dotenv
@@ -22,7 +23,11 @@ _key_cache = {}
 
 def _password():
     load_dotenv()
-    pw = os.getenv("REPORT_PASSWORD") or getpass.getpass("보고서 비밀번호: ")
+    pw = os.getenv("REPORT_PASSWORD")
+    if not pw:
+        if os.getenv("CI") or not sys.stdin or not sys.stdin.isatty():
+            raise SystemExit("REPORT_PASSWORD 가 설정되지 않았습니다 (.env 또는 GitHub Secrets).")
+        pw = getpass.getpass("보고서 비밀번호: ")
     if len(pw) < 8:
         raise SystemExit("보고서 비밀번호는 8자 이상이어야 합니다.")
     return pw
