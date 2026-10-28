@@ -15,6 +15,8 @@ import pandas as pd
 import requests
 from dotenv import load_dotenv
 
+from report_protect import encrypt_page
+
 load_dotenv()
 API_KEY = os.getenv("BOK_API_KEY")
 
@@ -510,7 +512,7 @@ h1{{-webkit-text-fill-color:var(--ac);background:none;color:var(--ac)}}
 <a class="toc-back" href="report.html" style="display:inline-block;margin-bottom:.8rem;color:var(--ac);font-weight:600;text-decoration:none">← 주간·월간 운용분석보고서로</a>
 <header><div><h1>위탁운용 분석보고서</h1><div class="sub">예금보험기금 국내채권형 유니버스 1~12호 · 25년말 보유내역 기준 포트폴리오 분석</div></div>
 <div><div class="badge">기준일 {date}</div>
-<div class="tools"><button id="btnHwp" onclick="exportDocx()">📝 한글/워드 저장(.docx)</button><button id="btnPdf" onclick="exportPdf()">📄 PDF 저장</button><button id="btnPrint" onclick="window.print()">🖨️ 인쇄</button></div></div></header>
+<div class="tools"><button id="btnHwp" onclick="exportDocx()">📝 한글/워드 저장(.docx)</button><button id="btnPdf" onclick="exportPdf()">📄 PDF 저장</button><button id="btnPrint" onclick="window.print()">🖨️ 인쇄</button><button id="btnLock" onclick="window.__reportLock && window.__reportLock()">🔒 잠금</button></div></div></header>
 <nav class="toc"><a href="#s1">1. 요약</a><a href="#s2">2. 듀레이션</a><a href="#s3">3. 누적 수익률</a><a href="#s4">4. 금리 커브</a><a href="#s5">5. 펀드별 비교</a><a href="#s6">6. 종합·시사점</a><a href="#s7">7. 매매·실현손익</a></nav>
 
 <section id="s1"><h2><span>1.</span>요약</h2>{kpi}{summary_points}
@@ -566,10 +568,10 @@ def main():
     dates = [base_date - pd.DateOffset(years=1), base_date - pd.DateOffset(months=6), base_date - pd.DateOffset(months=3), base_date]
     dates = [pd.Timestamp(d) + pd.offsets.MonthEnd(0) for d in dates]
     ktb, ust = fetch_curves(dates)
-    html = build_html(src, base_date, res, ktb, ust, dates)
+    html = encrypt_page(build_html(src, base_date, res, ktb, ust, dates), "위탁운용 분석보고서 (25년말 보유내역)")
     with open("report_holdings.html", "w", encoding="utf-8") as f:
         f.write(html)
-    print(f"report_holdings.html 생성 완료 ({len(res)}개 펀드, 기준일 {base_date:%Y-%m-%d})")
+    print(f"report_holdings.html 생성 완료(암호화) ({len(res)}개 펀드, 기준일 {base_date:%Y-%m-%d})")
 
 
 if __name__ == "__main__":

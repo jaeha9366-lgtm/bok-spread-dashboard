@@ -21,6 +21,8 @@ import pandas as pd
 import requests
 from dotenv import load_dotenv
 
+from report_protect import encrypt_page
+
 load_dotenv()
 API_KEY = os.getenv("BOK_API_KEY")
 DATA_DIR = "report_data"
@@ -558,9 +560,10 @@ def main():
     js = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
     with open("report_template.html", encoding="utf-8") as f:
         tpl = f.read()
+    html = encrypt_page(tpl.replace("__REPORT_DATA__", js), "위탁운용 운용분석보고서")
     with open(OUT_HTML, "w", encoding="utf-8") as f:
-        f.write(tpl.replace("__REPORT_DATA__", js))
-    print(f"{OUT_HTML} 생성 완료: 주간 {len(periods['W'])}개, 월간 {len(periods['M'])}개 기간 ({len(js) / 1024:,.0f}KB)")
+        f.write(html)
+    print(f"{OUT_HTML} 생성 완료(암호화): 주간 {len(periods['W'])}개, 월간 {len(periods['M'])}개 기간 ({len(html) / 1024:,.0f}KB)")
 
 
 if __name__ == "__main__":
