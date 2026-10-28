@@ -96,7 +96,13 @@ button:disabled{opacity:.6;cursor:wait}
       .then(function (k) { return crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64d(P.n) }, k, b64d(P.c)); })
       .then(function (pt) { return new TextDecoder().decode(pt); });
   }
-  function show(html) { document.open(); document.write(html); document.close(); }
+  // 로그인 페이지가 아직 로딩 중일 때 document.write를 하면 문서가 교체되지 않고 뒤에 덧붙어
+  // (로그인 화면의 가운데 정렬 스타일이 남아) 보고서가 오른쪽으로 쏠린다. 로딩이 끝난 뒤 교체한다.
+  function show(html) {
+    function swap() { document.open(); document.write(html); document.close(); }
+    if (document.readyState === 'complete') setTimeout(swap, 0);
+    else window.addEventListener('load', function () { setTimeout(swap, 0); }, { once: true });
+  }
   function savedKey() {
     try {
       var s = sessionStorage.getItem(KEY);
