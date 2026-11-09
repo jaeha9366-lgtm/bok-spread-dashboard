@@ -35,6 +35,16 @@ NAV_COLS = ["date", "name", "code", "nav", "chg", "tax_nav", "tax_chg", "adj_nav
 MAT_BUCKETS = [(0, 1, "1년 미만"), (1, 3, "1~3년"), (3, 5, "3~5년"), (5, 10, "5~10년"), (10, 20, "10~20년"), (20, 99, "20년 이상")]
 EOK = 1e8
 
+# 컴플라이언스 점검 기준
+COMP = {
+    "dur_limit": 0.6,      # BM 대비 듀레이션 갭 한도 (±년)
+    "dur_near": 0.5,       # 근접 기준 (±년, 한도의 약 83%)
+    "to_limit": 600.0,     # 연간 매매회전율 한도 (%)
+    "to_near": 480.0,      # 근접 기준 (%, 한도의 80%)
+    "grace_days": 14,      # 연중 신규 설정 펀드: 설정 후 이 기간(일)의 듀레이션 갭은 판정 제외 (포트폴리오 구축 기간)
+    "ann_min_days": 90,    # 연환산 회전율은 운용 90일 이상일 때만 근접 판정에 사용 (설정 초기 매수가 과대 반영되므로)
+}
+
 
 # ============================================================ 데이터 로딩
 def find_file(keyword):
@@ -398,6 +408,110 @@ def trade_period(trades, b, e, funds):
             "gain": [row(x) for _, x in gainr.iterrows()], "bigbuy": [row(x) for _, x in bigbuy.iterrows()], "xfer": xfer}
 
 
+# ============================================================ 컴플라이언스 점검
+def _date_ranges(idx, maxn=3):
+    """연속(주말 건너뜀) 날짜를 '3/2~3/13, 4/7' 형태로 요약."""
+    if len(idx) == 0:
+        return ""
+    rngs, s0, prev = [], idx[0], idx[0]
+    for d in idx[1:]:
+        if (d - prev).days > 3:
+            rngs.append((s0, prev)); s0 = d
+        prev = d
+    rngs.append((s0, prev))
+    txt = [f"{a.month}/{a.day}" + ("" if a == b else f"~{b.month}/{b.day}") for a, b in rngs]
+    return ", ".join(txt[:maxn]) + (f" 외 {len(txt) - maxn}구간" if len(txt) > maxn else "")
+
+
+def compliance_fund(f, b, e, dmin, trades, has_trades):
+    s, meta = f["df"], f["meta"]
+    first, last = s.index[0], s.index[-1]
+    if first > e or last <= b:
+        return None
+    ef = min(e, last)
+    lim, near = COMP["dur_limit"], COMP["dur_near"]
+    grace_end = first + pd.Timedelta(days=COMP["grace_days"]) if first > dmin else None
+
+    def gaps(lo, hi):
+        w = s.loc[lo:hi]
+        w = w[(w.index.dayofweek < 5) & (w["dur_all"] > 0) & (w["bm_dur"] > 0)]
+        return w["dur_all"] - w["bm_dur"]
+
+    o = {"c": meta["code"], "n": meta["short"], "g": meta["g"], "st": "해지" if last < e else ""}
+    lo = first if first > b else b + pd.Timedelta(days=1)
+    g = gaps(lo, ef)
+    if len(g):
+        judged = g[g.index > grace_end] if grace_end is not None else g
+        early = g[g.index <= grace_end] if grace_end is not None else g.iloc[0:0]
+        a = judged.abs()
+        ytd = gaps(first, ef)
+        ytd = ytd[ytd.index > grace_end] if grace_end is not None else ytd
+        breach_idx = a[a > lim].index
+        nb, nn = int(len(breach_idx)), int(((a >= near) & (a <= lim)).sum())
+        end = g.iloc[-1]
+        status = "위반" if nb else ("근접" if (nn or abs(end) >= near) else "정상")
+        if not len(judged):
+            status = "설정초기"
+        o["dur"] = {"end": rnd(end, 3), "max": rnd(judged.loc[a.idxmax()], 3) if len(a) else None,
+                    "maxd": f"{a.idxmax().month}/{a.idxmax().day}" if len(a) else "", "breach": nb, "near": nn,
+                    "days": int(len(judged)), "ranges": _date_ranges(breach_idx), "early": int((early.abs() > lim).sum()),
+                    "ytd": int((ytd.abs() > lim).sum()), "status": status}
+    else:
+        o["dur"] = None  # BM 듀레이션 없음
+
+    if has_trades:
+        t = trades[(trades["code"] == meta["code"]) & trades["side"].isin(["매입", "매도"]) &
+                   (trades["date"] >= first) & (trades["date"] <= ef)]
+        avg = s.loc[first:ef, "aum"].mean()
+        days = (ef - first).days + 1
+        ytd_to = t["amt"].sum() / 2 / avg * 100 if avg else 0.0
+        ann = ytd_to * 365 / days
+        use_ann = days >= COMP["ann_min_days"]
+        status = "위반" if ytd_to > COMP["to_limit"] else (
+            "근접" if (ytd_to >= COMP["to_near"] or (use_ann and ann > COMP["to_limit"])) else "정상")
+        o["to"] = {"ytd": rnd(ytd_to, 1), "ann": rnd(ann, 1), "days": days, "use_ann": use_ann,
+                   "util": rnd(ytd_to / COMP["to_limit"] * 100, 1), "status": status}
+    else:
+        o["to"] = None  # 매매자료 없음
+    return o
+
+
+def compliance_period(funds, order, b, e, dmin, trades):
+    traded = set(trades["code"].unique()) if len(trades) else set()
+    fl = [x for x in (compliance_fund(funds[c], b, e, dmin, trades, c in traded) for c in order) if x]
+    cnt = lambda k, st: sum(1 for x in fl if x.get(k) and x[k]["status"] == st)
+    return {"rules": COMP, "funds": fl,
+            "sum": {"dur": {"위반": cnt("dur", "위반"), "근접": cnt("dur", "근접"), "n": sum(1 for x in fl if x.get("dur"))},
+                    "to": {"위반": cnt("to", "위반"), "근접": cnt("to", "근접"), "n": sum(1 for x in fl if x.get("to"))}}}
+
+
+def compliance_comments(comp):
+    """요약용 문장과 점검사항 목록."""
+    r, s = comp["rules"], comp["sum"]
+    head = (f"<b>컴플라이언스</b>: 듀레이션 갭(±{r['dur_limit']}년) 위반 {s['dur']['위반']}개·근접 {s['dur']['근접']}개, "
+            f"매매회전율({r['to_limit']:.0f}%) 위반 {s['to']['위반']}개·근접 {s['to']['근접']}개")
+    flagged = []
+    chk = []
+    for x in comp["funds"]:
+        d, t = x.get("dur"), x.get("to")
+        if d and d["status"] == "위반":
+            flagged.append(f"{x['n']} 듀레이션 갭 위반")
+            chk.append(f"<b>[컴플라이언스] {x['n']}</b>: BM 대비 듀레이션 갭 한도(±{r['dur_limit']}년) 초과 {d['breach']}영업일"
+                       f" ({d['ranges']}), 기간 최대 {d['max']:+.3f}년({d['maxd']}), 기말 {d['end']:+.3f}년")
+        elif d and d["status"] == "근접":
+            flagged.append(f"{x['n']} 듀레이션 갭 근접")
+            chk.append(f"<b>[컴플라이언스] {x['n']}</b>: 듀레이션 갭 한도 근접 — 기간 최대 {d['max']:+.3f}년({d['maxd']}), 기말 {d['end']:+.3f}년")
+        if t and t["status"] == "위반":
+            flagged.append(f"{x['n']} 회전율 위반")
+            chk.append(f"<b>[컴플라이언스] {x['n']}</b>: 연초 이후 매매회전율 {t['ytd']:.0f}% — 연간 한도 {r['to_limit']:.0f}% 초과")
+        elif t and t["status"] == "근접":
+            why = f"누적 {t['ytd']:.0f}%" if t["ytd"] >= r["to_near"] else f"연환산 {t['ann']:.0f}%로 연말 한도 초과 우려"
+            flagged.append(f"{x['n']} 회전율 근접")
+            chk.append(f"<b>[컴플라이언스] {x['n']}</b>: 매매회전율 한도 근접 ({why}, 한도 {r['to_limit']:.0f}%)")
+    head += (" → " + ", ".join(flagged[:6]) + (" 등" if len(flagged) > 6 else "") + ".") if flagged else " — 이상 없음."
+    return head, chk
+
+
 # ============================================================ 코멘트 자동 생성
 def bp(v):
     return f"{v:+.1f}bp"
@@ -478,7 +592,7 @@ def comments(p, kind):
     th_ex = -10 if kind == "W" else -20
     th_to = 15 if kind == "W" else 40
     for f in fl:
-        if f["dg"] is not None and abs(f["dg"]) >= 0.3:
+        if f["dg"] is not None and 0.3 <= abs(f["dg"]) < COMP["dur_near"]:
             chk.append(f"<b>{f['n']}</b>: BM 대비 듀레이션 갭 {f['dg']:+.2f}년 → 의도된 금리 베팅인지 확인")
         if f["ex"] is not None and f["ex"] <= th_ex:
             chk.append(f"<b>{f['n']}</b>: 기간 초과수익 {bp(f['ex'])} (기준 {th_ex}bp 이하)")
@@ -531,7 +645,11 @@ def main():
                                      to=rnd(vol / avg_aum * 100, 1) if avg_aum else None))
             p["mkt"] = market_period(mk, b, e)
             p["tr"] = trade_period(trades, b, e, funds)
+            p["comp"] = compliance_period(funds, order, b, e, dmin, trades)
             p["cm"], p["chk"] = comments(p, kind)
+            head, cchk = compliance_comments(p["comp"])
+            p["cm"].insert(0, head)
+            p["chk"] = cchk + p["chk"]
             p["b"], p["e"] = f"{b:%Y-%m-%d}", f"{e:%Y-%m-%d}"
 
     # 일별 시계열 (차트용)

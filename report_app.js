@@ -78,6 +78,11 @@
     const tot = ['U', 'D', 'O'].reduce((a, k) => a + ((g[k] || {}).aum || 0), 0);
     const flow = ['U', 'D', 'O'].reduce((a, k) => a + ((g[k] || {}).flow || 0), 0);
     const k = [];
+    if (p.comp) {
+      const cs = p.comp.sum, bad = cs.dur['위반'] + cs.to['위반'], warn = cs.dur['근접'] + cs.to['근접'];
+      k.push(['컴플라이언스 점검', bad ? `<span class="neg-strong">위반 ${bad}</span><small>건 · 근접 ${warn}건</small>` : (warn ? `근접 ${warn}<small>건</small>` : '이상 없음'),
+        `듀레이션 갭 ±${p.comp.rules.dur_limit}년 · 연간 회전율 ${p.comp.rules.to_limit}%`]);
+    }
     if (gu) {
       k.push(['국내 유니버스 기간 수익률', `${nf(gu.r, 3)}<small>%</small>`, `BM ${nf(gu.rb, 3)}% · 초과 ${sg(gu.ex)}bp`]);
       k.push(['BM 상회 펀드', `${gu.nout}<small>/ ${gu.nbm}개</small>`, `연초 이후 가중 초과 ${sg(gu.ytdx)}bp`]);
@@ -89,6 +94,37 @@
     const kp = '<div class="kpis">' + k.map((x) => `<div class="kpi"><div class="kl">${x[0]}</div><div class="kv">${x[1]}</div><div class="ks">${x[2]}</div></div>`).join('') + '</div>';
     const top = p.cm.slice(0, 4).map((c) => `<li>${c}</li>`).join('');
     return kp + `<h3>핵심 요약</h3><ul class="pts">${top}</ul>` + (p.partial ? '<p class="note">※ 진행 중인 기간으로, 데이터 최종일까지의 수치입니다.</p>' : '');
+  }
+
+  const ST = { '위반': 'bad', '근접': 'warn', '정상': 'ok', '설정초기': 'na' };
+  const badge = (s) => s ? `<span class="st ${ST[s] || 'na'}">${s}</span>` : '<span class="st na">자료 없음</span>';
+  function sComp(p) {
+    const C = p.comp, r = C.rules, sm = C.sum;
+    const rank = { '위반': 0, '근접': 1, '설정초기': 3, '정상': 2 };
+    const worst = (x) => Math.min(x.dur ? rank[x.dur.status] : 9, x.to ? rank[x.to.status] : 9);
+    const F = C.funds.slice().sort((a, b) => worst(a) - worst(b));
+    const rows = F.map((x) => {
+      const d = x.dur, t = x.to;
+      const dcells = d
+        ? `<td class="${Math.abs(d.end) > r.dur_limit ? 'neg-strong' : ''}">${sg(d.end, 3)}</td><td>${d.max == null ? '-' : sg(d.max, 3) + ` <span class="muted">(${d.maxd})</span>`}</td><td>${d.breach} / ${d.near}<span class="muted"> (${d.days}일)</span></td><td>${d.ytd}</td><td>${badge(d.status)}</td>`
+        : '<td colspan="4" class="muted">BM 듀레이션 없음</td><td>' + badge(null) + '</td>';
+      const tcells = t
+        ? `<td>${nf(t.ytd, 1)}</td><td>${nf(t.ann, 1)}${t.use_ann ? '' : '<span class="muted">*</span>'}</td><td>${nf(t.util, 1)}%</td><td>${badge(t.status)}</td>`
+        : '<td colspan="3" class="muted">매매자료 없음</td><td>' + badge(null) + '</td>';
+      return `<tr>${L(fname(x))}${dcells}${tcells}</tr>`;
+    });
+    const items = p.chk.filter((c) => c.indexOf('[컴플라이언스]') >= 0);
+    let h = `<div class="kpis comp-sum">
+      <div class="kpi comp-box"><div class="kl">① BM 대비 듀레이션 갭 (한도 ±${r.dur_limit}년)</div><div class="kv">${sm.dur['위반'] ? `<span class="neg-strong">위반 ${sm.dur['위반']}</span>` : '위반 0'}<small> · 근접 ${sm.dur['근접']}</small></div><div class="ks">판정 대상 ${sm.dur.n}개 펀드 (BM 듀레이션 보유)</div></div>
+      <div class="kpi comp-box"><div class="kl">② 연간 매매회전율 (한도 ${r.to_limit}%)</div><div class="kv">${sm.to['위반'] ? `<span class="neg-strong">위반 ${sm.to['위반']}</span>` : '위반 0'}<small> · 근접 ${sm.to['근접']}</small></div><div class="ks">판정 대상 ${sm.to.n}개 펀드 (매매자료 보유)</div></div></div>`;
+    h += items.length ? `<h3>확인 필요 펀드</h3><ul class="pts">${items.map((c) => `<li>${c.replace('[컴플라이언스] ', '')}</li>`).join('')}</ul>`
+      : '<p>이번 기간 한도 위반·근접 펀드가 없습니다.</p>';
+    h += table([THL('펀드'), '기말 갭(년)', '기간 최대 갭', '위반/근접 일수', '연초 이후 위반일', '듀레이션 판정', '연초 이후 회전율(%)', '연환산(%)', '한도 소진율', '회전율 판정'], rows);
+    h += '<div class="grid2"><div class="chart"><canvas id="cCompDur"></canvas></div><div class="chart"><canvas id="cCompTo"></canvas></div></div>';
+    h += `<p class="note">※ 판정 기준 — ① 듀레이션 갭 = 펀드 듀레이션 − BM 듀레이션(영업일 기준). 기간 중 하루라도 |갭| &gt; ${r.dur_limit}년이면 <b>위반</b>, ${r.dur_near}년 이상이면 <b>근접</b>. 연중 신규 설정 펀드는 설정 후 ${r.grace_days}일(포트폴리오 구축 기간)을 판정에서 제외합니다. `
+      + `② 매매회전율 = 연초(또는 설정일) 이후 (매입+매도)/2 ÷ 평균순자산, 현물 이관(이수·이체) 제외. 누적 ${r.to_limit}% 초과 시 <b>위반</b>, ${r.to_near}% 이상이거나 연환산이 한도를 넘으면 <b>근접</b>. `
+      + `연환산 = 누적 × 365 ÷ 운용일수이며, 운용 ${r.ann_min_days}일 미만 펀드(*)는 설정 초기 매수가 과대 반영되므로 참고치로만 표시합니다.</p>`;
+    return h;
   }
 
   function sMarket(p) {
@@ -224,6 +260,7 @@
     const has = (g) => p.funds.some((f) => f.g === g);
     const S_ = [
       ['s-sum', '요약', sSummary(p), false],
+      ...(p.comp ? [['s-comp', '컴플라이언스 점검', sComp(p), false]] : []),
       ['s-mkt', '시장 환경', sMarket(p), false],
       ['s-perf', '펀드별 성과 (국내채권형 유니버스)', sPerf(p), true],
       ['s-attr', '성과요인 분해 (추정)', sAttr(p), false],
@@ -248,6 +285,32 @@
     const pct = (v) => Number(v).toFixed(2) + '%';
     mkChart('cMkt1', lineCfg(labels, [{ label: '국고 3년', data: mk('ktb3') }, { label: '국고 10년', data: mk('ktb10') }, { label: '국고 30년', data: mk('ktb30') }], '국내 금리 추이 (음영: 보고 기간)', band, pct));
     mkChart('cMkt2', lineCfg(labels, [{ label: '美국채 10년(좌)', data: mk('ust10') }, { label: '원/달러(우)', data: mk('usdkrw'), yAxisID: 'y2', borderColor: COLORS[2], backgroundColor: COLORS[2] }], '美국채 10년 · 원/달러', band, pct, (v) => Number(v).toLocaleString('ko-KR')));
+
+    // 컴플라이언스: 한도선 포함 막대
+    if (p.comp) {
+      const r = p.comp.rules;
+      const colorOf = (st) => ({ '위반': 'rgba(220,38,38,.8)', '근접': 'rgba(245,158,11,.85)' }[st] || 'rgba(79,70,229,.55)');
+      const limLine = (label, v, n, color, dash) => ({ label, data: Array(n).fill(v), type: 'line', borderColor: color, backgroundColor: color, borderDash: dash, borderWidth: 1.5, pointRadius: 0 });
+      const Dd = p.comp.funds.filter((x) => x.dur && x.dur.max != null);
+      if (Dd.length) {
+        const n = Dd.length;
+        mkChart('cCompDur', { type: 'bar', data: { labels: Dd.map((x) => x.n), datasets: [
+          { label: '기간 최대 갭', data: Dd.map((x) => x.dur.max), backgroundColor: Dd.map((x) => colorOf(x.dur.status)), borderRadius: 3 },
+          { label: '기말 갭', data: Dd.map((x) => x.dur.end), type: 'line', showLine: false, pointRadius: 3, borderColor: '#0f172a', backgroundColor: '#0f172a' },
+          limLine(`한도 ±${r.dur_limit}`, r.dur_limit, n, '#dc2626', [6, 4]), limLine('', -r.dur_limit, n, '#dc2626', [6, 4]),
+          limLine(`근접 ±${r.dur_near}`, r.dur_near, n, '#f59e0b', [2, 3]), limLine('', -r.dur_near, n, '#f59e0b', [2, 3])] },
+          options: { plugins: { title: { display: true, text: 'BM 대비 듀레이션 갭 (년)' }, legend: { labels: { boxWidth: 12, filter: (it) => it.text !== '' } } } } });
+      }
+      const Tt = p.comp.funds.filter((x) => x.to);
+      if (Tt.length) {
+        const n = Tt.length;
+        mkChart('cCompTo', { type: 'bar', data: { labels: Tt.map((x) => x.n), datasets: [
+          { label: '연초 이후 누적 회전율', data: Tt.map((x) => x.to.ytd), backgroundColor: Tt.map((x) => colorOf(x.to.status)), borderRadius: 3 },
+          { label: '연환산(운용 90일 이상)', data: Tt.map((x) => x.to.use_ann ? x.to.ann : null), type: 'line', showLine: false, pointRadius: 3, borderColor: '#0f172a', backgroundColor: '#0f172a' },
+          limLine(`한도 ${r.to_limit}%`, r.to_limit, n, '#dc2626', [6, 4]), limLine(`근접 ${r.to_near}%`, r.to_near, n, '#f59e0b', [2, 3])] },
+          options: { plugins: { title: { display: true, text: '연간 매매회전율 (%)' }, legend: { labels: { boxWidth: 12 } } }, scales: { y: { beginAtZero: true } } } });
+      }
+    }
 
     const U = uFunds(p);
     const Ux = U.filter((f) => isNum(f.ex));
