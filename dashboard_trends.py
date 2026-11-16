@@ -6,7 +6,7 @@
   python dashboard_trends.py            # trends.html 다시 생성
 
 - 원본(HWPX·본문)은 trend_reports/<type>/<id>/ 에 로컬 보관 (.gitignore, 공개 저장소에 올리지 않음)
-- 게시본: trends.html (보고서 비밀번호로 암호화된 미리보기) + trend_reports_enc/<id>.enc (암호화된 HWPX, 로그인 후 다운로드)
+- 게시본: trends.html (로그인 없이 공개) + trend_files/<type>-<id>.hwpx (다운로드용 HWPX)
 """
 import argparse
 import base64
@@ -16,10 +16,8 @@ import os
 import shutil
 from datetime import datetime
 
-from report_inputs import encrypt_bytes
-from report_protect import _key, _password, encrypt_page
 
-SRC_DIR, ENC_DIR, OUT = "trend_reports", "trend_reports_enc", "trends.html"
+SRC_DIR, PUB_DIR, OUT = "trend_reports", "trend_files", "trends.html"
 TYPES = {"weekly": "주간 동향 및 운용계획", "monthly": "월간 채권시장 동향·전망", "annual": "연간 경제·채권시장 전망"}
 
 
@@ -43,17 +41,16 @@ def cmd_add(a):
 
 
 def cmd_build(_a=None):
-    key = _key(_password())
-    os.makedirs(ENC_DIR, exist_ok=True)
+    os.makedirs(PUB_DIR, exist_ok=True)
     reports = []
     for mp in sorted(glob.glob(os.path.join(SRC_DIR, "*", "*", "meta.json"))):
         d = os.path.dirname(mp)
         m = json.load(open(mp, encoding="utf-8"))
         rid = f"{m['type']}-{m['id']}"
-        with open(os.path.join(d, "report.hwpx"), "rb") as fh:
-            blob = encrypt_bytes(key, m["file"], fh.read())
-        with open(os.path.join(ENC_DIR, rid + ".enc"), "wb") as fh:
-            fh.write(blob)
+        shutil.copyfile(os.path.join(d, "report.hwpx"), os.path.join(PUB_DIR, rid + ".hwpx"))
+        if m["type"] == "weekly" and m.get("calc"):
+            build_docx(m, d, os.path.join(PUB_DIR, rid + ".docx"))
+            m["docx"] = os.path.splitext(m["file"])[0] + ".docx"
         m["rid"] = rid
         m["images"] = [base64.b64encode(open(p, "rb").read()).decode() for p in sorted(glob.glob(os.path.join(d, "image*.png")))]
         reports.append(m)
@@ -62,8 +59,108 @@ def cmd_build(_a=None):
                       ensure_ascii=False).replace("</", "<\\/")
     html = TEMPLATE.replace("__DATA__", data)
     with open(OUT, "w", encoding="utf-8") as f:
-        f.write(encrypt_page(html, "주간 동향 분석"))
-    print(f"{OUT} 생성 완료(암호화): 보고서 {len(reports)}건")
+        f.write(html)
+    print(f"{OUT} 생성 완료: 보고서 {len(reports)}건")
+
+
+def build_docx(m, d, out):
+    """주간 동향 보고서를 Word(.docx)로 저장 (HWPX와 같은 내용: 제목·그래프·본문·각주·요약·변동표)."""
+    from docx import Document
+    from docx.enum.section import WD_ORIENT
+    from docx.enum.table import WD_TABLE_ALIGNMENT
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    from docx.oxml.ns import qn
+    from docx.shared import Cm, Pt, RGBColor
+
+    RED, BLUE, GRAY = RGBColor(0xFF, 0, 0), RGBColor(0, 0, 0xFF), RGBColor(0x47, 0x55, 0x69)
+    c, t = m["calc"], m.get("content") or {}
+    doc = Document()
+    sec = doc.sections[0]
+    sec.orientation = WD_ORIENT.LANDSCAPE
+    sec.page_width, sec.page_height = Cm(29.7), Cm(21.0)
+    for side in ("left_margin", "right_margin", "top_margin", "bottom_margin"):
+        setattr(sec, side, Cm(1.5))
+    st = doc.styles["Normal"]
+    st.font.name, st.font.size = "맑은 고딕", Pt(10.5)
+    st.element.rPr.rFonts.set(qn("w:eastAsia"), "맑은 고딕")
+    st.paragraph_format.space_after = Pt(2)
+
+    def run(p, text, bold=False, color=None, size=None):
+        r = p.add_run(text)
+        r.bold = bold
+        if color is not None:
+            r.font.color.rgb = color
+        if size:
+            r.font.size = Pt(size)
+        return r
+
+    def sign(v, unit, nd):
+        v = round(v, nd)
+        if v == 0:
+            return "보합", None
+        return (f"+{abs(v):,.{nd}f}{unit}", RED) if v > 0 else (f"△{abs(v):,.{nd}f}{unit}", BLUE)
+
+    p = doc.add_paragraph(); p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run(p, c["title"], bold=True, size=16)
+    p = doc.add_paragraph(); run(p, f"□ 금주 동향 ({c['trend_period']})", bold=True, size=12)
+
+    imgs = sorted(glob.glob(os.path.join(d, "image*.png")))
+    if imgs:
+        caps = ["미국채 10년", "국고채 3년", "원/달러 환율"]
+        tb = doc.add_table(rows=2, cols=len(imgs)); tb.style = "Table Grid"; tb.alignment = WD_TABLE_ALIGNMENT.CENTER
+        for i, pth in enumerate(imgs):
+            cp = tb.cell(0, i).paragraphs[0]; cp.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            run(cp, caps[i] if i < len(caps) else "", bold=True)
+            ip = tb.cell(1, i).paragraphs[0]; ip.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            ip.add_run().add_picture(pth, width=Cm(8.4))
+        doc.add_paragraph()
+
+    for key, head, tag in (("us", "미국금리", c.get("us_chg")), ("kr", "한국금리", c.get("kr_chg")), ("fx", "원/달러 환율", c.get("fx_chg"))):
+        s = t.get(key)
+        if not s:
+            continue
+        p = doc.add_paragraph(); p.paragraph_format.space_before = Pt(6)
+        run(p, f"▪({head})", bold=True)
+        for kind, text in s["main"]:
+            run(p, text, bold=(kind == "em"))
+        if tag:
+            run(p, f" ({tag[0]})", bold=True, color=RED if tag[1] == "up" else BLUE if tag[1] == "down" else None)
+        for n in s.get("notes", []):
+            q = doc.add_paragraph(); q.paragraph_format.left_indent = Cm(0.6)
+            run(q, n.strip(), color=GRAY, size=9.5)
+
+    u0, u1 = c["usd"]
+    p = doc.add_paragraph(); p.paragraph_format.space_before = Pt(6)
+    run(p, f"※ 원/달러 환율 : {u0:,.1f}원 → {u1:,.1f}원(", size=9.5)
+    txt, col = sign(u1 - u0, "원", 1); run(p, txt, bold=True, color=col, size=9.5)
+    for name, pair in (("달러인덱스", t.get("dxy")), ("엔/달러 환율", t.get("jpy"))):
+        if pair:
+            run(p, f"), {name} : {pair[0]:.1f} → {pair[1]:.1f}(", size=9.5)
+            txt, col = sign(pair[1] - pair[0], "", 1); run(p, txt, bold=True, color=col, size=9.5)
+    run(p, ")", size=9.5)
+
+    p = doc.add_paragraph(); p.paragraph_format.space_before = Pt(10)
+    run(p, f"□ 주간 변동 ({c['comp']} → {c['base']})", bold=True, size=12)
+    rows = [("美 국채 10년(%)", c["us10y"], 3, "bp", 100), ("국고채 3년(%)", c["ktb3y"], 3, "bp", 100), ("원/달러(원)", c["usd"], 1, "원", 1)]
+    if t.get("dxy"):
+        rows.append(("달러인덱스", t["dxy"], 1, "", 1))
+    if t.get("jpy"):
+        rows.append(("엔/달러", t["jpy"], 1, "", 1))
+    tb = doc.add_table(rows=1, cols=4); tb.style = "Table Grid"
+    for i, h in enumerate(("지표", "비교일", "기준일", "변동")):
+        run(tb.rows[0].cells[i].paragraphs[0], h, bold=True)
+    for name, v, nd, unit, k in rows:
+        cells = tb.add_row().cells
+        cells[0].text = name
+        for j, val in ((1, v[0]), (2, v[1])):
+            cells[j].text = f"{val:,.{nd}f}"; cells[j].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        txt, col = sign((v[1] - v[0]) * k, unit, 1)
+        cp = cells[3].paragraphs[0]; cp.alignment = WD_ALIGN_PARAGRAPH.RIGHT; run(cp, txt, bold=True, color=col)
+
+    p = doc.add_paragraph(); p.paragraph_format.space_before = Pt(10)
+    run(p, f"□ 운용 계획 ({c['plan_period']}) : 신규운용 현황·수익률·차주계획(운용가능 자금 등)은 한글(HWPX) 파일 양식을 참고하여 작성",
+        color=GRAY, size=9.5)
+    doc.save(out)
 
 
 TEMPLATE = r"""<!DOCTYPE html>
@@ -84,7 +181,7 @@ h1{font-family:'Outfit','Malgun Gothic',sans-serif;font-size:2rem;margin:0;color
 .seg button.on{background:var(--ac);border-color:var(--ac);color:#fff}
 .bar{display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;background:#fff;border:1px solid var(--bd);border-radius:12px;padding:.8rem 1rem;margin-bottom:1rem}
 .bar select{padding:.45rem .6rem;border:1px solid var(--bd);border-radius:8px;font-family:inherit;min-width:300px}
-.dl{margin-left:auto;background:var(--ac);color:#fff;border:0;border-radius:9px;padding:.55rem 1.1rem;font-weight:700;cursor:pointer;font-family:inherit}
+.dl2{margin-left:0!important;background:#2563eb!important}.dl{margin-left:auto;background:var(--ac);color:#fff;border:0;border-radius:9px;padding:.55rem 1.1rem;font-weight:700;cursor:pointer;font-family:inherit}
 section{background:#fff;border:1px solid var(--bd);border-radius:14px;padding:1.4rem 1.6rem;margin-bottom:1rem}
 h2{font-size:1.15rem;margin:0 0 .3rem}h3{font-size:.98rem;margin:1.1rem 0 .5rem;color:#334155}
 .meta{color:var(--mu);font-size:.82rem}
@@ -104,7 +201,7 @@ th.l,td.l{text-align:left}.up{color:var(--up);font-weight:700}.down{color:var(--
 @media print{.seg,.bar,.tools{display:none!important}body{background:#fff}section{border:0;padding:0}}
 </style></head><body><div class="wrap">
 <header><div><h1>주간 동향 분석</h1><div class="sub">기금운용실 보고서 · 주간 동향 및 운용계획 / 월간 채권시장 / 연간 전망</div></div>
-<div class="tools"><button onclick="window.print()">🖨️ 인쇄</button> <button onclick="window.__reportLock && window.__reportLock()">🔒 잠금</button></div></header>
+<div class="tools"><button onclick="window.print()">🖨️ 인쇄</button></div></header>
 <div class="seg" id="seg"></div>
 <div id="view"></div>
 <p class="src" id="gen"></p>
@@ -172,34 +269,28 @@ th.l,td.l{text-align:left}.up{color:var(--up);font-weight:700}.down{color:var(--
     const warn = (r.data_notes && r.data_notes.length) ? `<div class="warn"><b>데이터 확인 사항</b><ul>${r.data_notes.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>` : '';
     const src = (r.sources && r.sources.length) ? `<h3>참고 자료</h3><div class="src">${r.sources.map((x) => esc(x)).join('<br>')}</div>` : '';
     $('#view').innerHTML = `<div class="bar"><select id="sel">${opts}</select><span class="meta">작성 ${esc(r.created)}</span>
-      <button class="dl" id="dl">📥 한글 파일(HWPX) 다운로드</button></div>
+      <button class="dl" id="dl">📥 한글 파일(HWPX) 다운로드</button>${r.docx ? '<button class="dl dl2" id="dlw">📄 워드 파일(DOCX) 다운로드</button>' : ''}</div>
       <section><h2>${esc((r.calc && r.calc.title) || r.file)}</h2><p class="meta">기준일 ${esc(r.calc ? r.calc.base : '')} · ${esc(r.file)}</p>
       ${warn}${type === 'weekly' && r.calc ? weekly(r) : ''}${src}</section>`;
     $('#sel').onchange = (e) => { idx = +e.target.value; render(); };
-    $('#dl').onclick = () => download(r);
+    $('#dl').onclick = () => download(r, 'hwpx', $('#dl'));
+    if (r.docx) $('#dlw').onclick = () => download(r, 'docx', $('#dlw'));
   }
-  async function download(r) {
-    const btn = $('#dl');
+  async function download(r, ext, btn) {
+    const label = btn.textContent;
+    const mime = ext === 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'application/hwp+zip';
     try {
-      const keyB64 = sessionStorage.getItem('foiReportKey') || (JSON.parse(localStorage.getItem('foiReportKey') || 'null') || {}).k;
-      if (!keyB64) throw new Error('로그인 정보가 없습니다. 잠금 후 다시 로그인해 주세요.');
       btn.disabled = true; btn.textContent = '⏳ 준비 중...';
-      const res = await fetch(`trend_reports_enc/${r.rid}.enc?v=${encodeURIComponent(r.created)}`);
+      const res = await fetch(`trend_files/${r.rid}.${ext}?v=${encodeURIComponent(r.created)}`);
       if (!res.ok) throw new Error('파일을 불러오지 못했습니다 (' + res.status + ')');
-      const buf = new Uint8Array(await res.arrayBuffer());
-      const iv = buf.slice(8, 20), ct = buf.slice(20);
-      const key = await crypto.subtle.importKey('raw', Uint8Array.from(atob(keyB64), (c) => c.charCodeAt(0)), 'AES-GCM', false, ['decrypt']);
-      const pt = new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct));
-      const n = (pt[0] << 8) | pt[1];
-      const name = new TextDecoder().decode(pt.slice(2, 2 + n));
       const a = document.createElement('a');
-      a.href = URL.createObjectURL(new Blob([pt.slice(2 + n)], { type: 'application/hwp+zip' }));
-      a.download = name; a.click();
+      a.href = URL.createObjectURL(new Blob([await res.arrayBuffer()], { type: mime }));
+      a.download = ext === 'docx' ? r.docx : r.file; a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 2000);
     } catch (e) {
       alert('다운로드 실패: ' + (e.message || e) + (location.protocol === 'file:' ? '\n(로컬 파일에서는 브라우저가 파일 읽기를 막을 수 있습니다. 사이트 주소로 접속해 주세요.)' : ''));
     } finally {
-      btn.disabled = false; btn.textContent = '📥 한글 파일(HWPX) 다운로드';
+      btn.disabled = false; btn.textContent = label;
     }
   }
   $('#gen').textContent = '게시 ' + D.gen + ' · 보고서 본문은 AI가 공개 자료를 조사해 작성한 초안이므로 사실관계를 확인한 뒤 사용하세요.';
