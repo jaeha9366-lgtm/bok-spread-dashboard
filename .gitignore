@@ -18,3 +18,6 @@ Thumbs.db
 update_log.txt
 
 report_data/*.xls*
+
+# 주간 동향 분석 원본(HWPX·본문) ? 게시본은 trends.html / trend_reports_enc (암호화)
+trend_reports/
