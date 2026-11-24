@@ -332,6 +332,23 @@ def prev_report_fx(comp):
     return None
 
 
+def infer_base(name, df):
+    """기준일: 파일명의 YYMMDD → 없으면 '오늘(KST) 이전 가장 최근 금요일'(엑셀 마지막 날짜가 그 주에 있을 때) → 엑셀 마지막 날짜."""
+    last = df.index.max()
+    for s in re.findall(r"(?<!\d)(\d{6})(?!\d)", name):
+        try:
+            d = pd.Timestamp(f"20{s[:2]}-{s[2:4]}-{s[4:]}")
+        except ValueError:
+            continue
+        if abs((d - last).days) <= 14:
+            return d
+    today = pd.Timestamp.now(tz="Asia/Seoul").tz_localize(None).normalize()
+    fri = today - pd.Timedelta(days=(today.weekday() - 4) % 7)
+    if fri - pd.Timedelta(days=6) <= last <= fri:
+        return fri
+    return last
+
+
 # ------------------------------------------------------------------ main
 def main():
     ap = argparse.ArgumentParser()
@@ -348,12 +365,15 @@ def main():
     if a.base:
         base = pd.Timestamp(a.base)
     else:
-        m = re.search(r"(\d{6})", os.path.basename(a.xlsx[0]))
-        base = pd.Timestamp(f"20{m.group(1)[:2]}-{m.group(1)[2:4]}-{m.group(1)[4:]}") if m else df.index.max()
+        base = infer_base(os.path.basename(a.xlsx[0]), df)
     print(f"[1/4] 데이터 확인 — 기준일 {base.date()}, 엑셀 {df.index.min().date()}~{df.index.max().date()}")
     df, data_notes = fix_data(df, base, br)
     for n in data_notes:
         print("  ·", n)
+    if base not in df.index and not a.base and len(df.index[df.index <= base]):
+        nb = df.index[df.index <= base].max()
+        data_notes.append(f"기준일 {base.date()} 데이터가 아직 없어 마지막 데이터일 {nb.date()}을 기준일로 사용")
+        base = nb
     if base not in df.index:
         sys.exit(f"기준일 {base.date()} 데이터가 엑셀·공식 데이터 모두에 없습니다.")
 

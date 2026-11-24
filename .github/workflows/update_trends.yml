@@ -1,12 +1,12 @@
 name: Update Weekly Trend Report (uploaded data)
 
-# 주간 동향 분석 탭에서 금리·환율 엑셀을 올리면(trend_inputs/weekly/YYMMDD.xlsx)
+# 주간 동향 분석 탭(토큰 업로드) 또는 GitHub 웹 '파일 업로드'로 금리·환율 엑셀을 trend_inputs/weekly/ 에 올리면
 # 데이터 검증 → Gemini 조사·작성 → HWPX/DOCX 생성 → trends.html 게시까지 자동 실행한다.
 # 필요한 Secrets: GEMINI_API_KEY (필수), BOK_API_KEY (국고 3년 공식값 대조)
 on:
   push:
     branches: [main]
-    paths: ['trend_inputs/weekly/**']
+    paths: ['trend_inputs/weekly/*.xlsx', 'trend_inputs/weekly/*.xls']
   workflow_dispatch:
     inputs:
       xlsx:
@@ -46,25 +46,32 @@ jobs:
         run: |
           F="${{ github.event.inputs.xlsx }}"
           if [ -z "$F" ]; then
-            F=$(git diff --name-only HEAD~1 HEAD -- 'trend_inputs/weekly/*.xls*' 2>/dev/null | tail -n 1)
+            F=$(git -c core.quotepath=false diff --name-only --diff-filter=AM HEAD~1 HEAD -- 'trend_inputs/weekly/*.xls*' 2>/dev/null | tail -n 1)
+          fi
+          if [ -z "$F" ] && [ "${{ github.event_name }}" = "push" ]; then
+            echo "추가·수정된 엑셀이 없음(삭제 등) — 건너뜀"; echo "file=" >> "$GITHUB_OUTPUT"; exit 0
           fi
           if [ -z "$F" ]; then
-            F=$(ls trend_inputs/weekly/*.xls* 2>/dev/null | sort | tail -n 1)
+            F=$(ls -t trend_inputs/weekly/*.xls* 2>/dev/null | head -n 1)
           fi
           if [ -z "$F" ] || [ ! -f "$F" ]; then echo "::error::처리할 엑셀이 없습니다."; exit 1; fi
           echo "file=$F" >> "$GITHUB_OUTPUT"
           echo "처리 파일: $F"
 
       - name: Install uv
+        if: steps.pick.outputs.file != ''
         uses: astral-sh/setup-uv@v5
 
       - name: Set up Python environment
+        if: steps.pick.outputs.file != ''
         run: uv python install
 
       - name: Install dependencies
+        if: steps.pick.outputs.file != ''
         run: uv sync
 
       - name: Build weekly report
+        if: steps.pick.outputs.file != ''
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           BOK_API_KEY: ${{ secrets.BOK_API_KEY }}
@@ -78,6 +85,7 @@ jobs:
           fi
 
       - name: Commit and push
+        if: steps.pick.outputs.file != ''
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
