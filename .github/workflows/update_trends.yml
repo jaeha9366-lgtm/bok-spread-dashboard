@@ -1,0 +1,91 @@
+name: Update Weekly Trend Report (uploaded data)
+
+# 주간 동향 분석 탭에서 금리·환율 엑셀을 올리면(trend_inputs/weekly/YYMMDD.xlsx)
+# 데이터 검증 → Gemini 조사·작성 → HWPX/DOCX 생성 → trends.html 게시까지 자동 실행한다.
+# 필요한 Secrets: GEMINI_API_KEY (필수), BOK_API_KEY (국고 3년 공식값 대조)
+on:
+  push:
+    branches: [main]
+    paths: ['trend_inputs/weekly/**']
+  workflow_dispatch:
+    inputs:
+      xlsx:
+        description: '엑셀 경로 (예: trend_inputs/weekly/261106.xlsx). 비우면 가장 최근 파일'
+        required: false
+      base:
+        description: '기준일 YYYY-MM-DD (비우면 파일명 기준)'
+        required: false
+
+concurrency:
+  group: trend-build
+  cancel-in-progress: false
+
+jobs:
+  build-trend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check secrets
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          if [ -z "$GEMINI_API_KEY" ]; then
+            echo "::error::GEMINI_API_KEY Secret이 없습니다. Settings > Secrets and variables > Actions 에 등록해 주세요."
+            exit 1
+          fi
+
+      - name: Pick uploaded file
+        id: pick
+        run: |
+          F="${{ github.event.inputs.xlsx }}"
+          if [ -z "$F" ]; then
+            F=$(git diff --name-only HEAD~1 HEAD -- 'trend_inputs/weekly/*.xls*' 2>/dev/null | tail -n 1)
+          fi
+          if [ -z "$F" ]; then
+            F=$(ls trend_inputs/weekly/*.xls* 2>/dev/null | sort | tail -n 1)
+          fi
+          if [ -z "$F" ] || [ ! -f "$F" ]; then echo "::error::처리할 엑셀이 없습니다."; exit 1; fi
+          echo "file=$F" >> "$GITHUB_OUTPUT"
+          echo "처리 파일: $F"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Set up Python environment
+        run: uv python install
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Build weekly report
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          BOK_API_KEY: ${{ secrets.BOK_API_KEY }}
+          MPLBACKEND: Agg
+        run: |
+          BASE="${{ github.event.inputs.base }}"
+          if [ -n "$BASE" ]; then
+            uv run trend_auto.py --xlsx "${{ steps.pick.outputs.file }}" --base "$BASE"
+          else
+            uv run trend_auto.py --xlsx "${{ steps.pick.outputs.file }}"
+          fi
+
+      - name: Commit and push
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add trends.html trend_files trend_reports
+          if git diff --staged --quiet; then echo "변경 없음"; exit 0; fi
+          git commit -m "chore: 주간 동향 보고서 자동 작성 ($(basename '${{ steps.pick.outputs.file }}'))"
+          for i in 1 2 3; do
+            git pull --rebase origin main && git push origin HEAD:main && exit 0
+            sleep 10
+          done
+          exit 1

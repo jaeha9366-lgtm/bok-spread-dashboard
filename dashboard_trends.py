@@ -175,7 +175,7 @@ header{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap
 h1{font-family:'Outfit','Malgun Gothic',sans-serif;font-size:2rem;margin:0;color:var(--ac)}
 .sub{color:var(--mu);margin-top:.35rem}
 .tools button{border:1px solid var(--bd);background:#fff;padding:.45rem .9rem;border-radius:8px;font-weight:600;cursor:pointer;font-family:inherit}
-.tools button:hover{border-color:var(--ac);color:var(--ac)}
+.tools button:hover{border-color:var(--ac);color:var(--ac)}.tools .up-btn{background:var(--ac);border-color:var(--ac);color:#fff}.tools .up-btn:hover{color:#fff;opacity:.9}
 .seg{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem}
 .seg button{border:1px solid var(--bd);background:#fff;padding:.55rem 1.1rem;border-radius:10px;font-weight:600;color:var(--mu);cursor:pointer;font-family:inherit}
 .seg button.on{background:var(--ac);border-color:var(--ac);color:#fff}
@@ -201,7 +201,7 @@ th.l,td.l{text-align:left}.up{color:var(--up);font-weight:700}.down{color:var(--
 @media print{.seg,.bar,.tools{display:none!important}body{background:#fff}section{border:0;padding:0}}
 </style></head><body><div class="wrap">
 <header><div><h1>주간 동향 분석</h1><div class="sub">기금운용실 보고서 · 주간 동향 및 운용계획 / 월간 채권시장 / 연간 전망</div></div>
-<div class="tools"><button onclick="window.print()">🖨️ 인쇄</button></div></header>
+<div class="tools"><button class="up-btn" onclick="window.openTrendUpload && window.openTrendUpload()">📤 자료 업로드 · 자동 작성</button> <button onclick="window.print()">🖨️ 인쇄</button></div></header>
 <div class="seg" id="seg"></div>
 <div id="view"></div>
 <p class="src" id="gen"></p>
@@ -261,7 +261,7 @@ th.l,td.l{text-align:left}.up{color:var(--up);font-weight:700}.down{color:var(--
     const list = D.reports.filter((r) => r.type === type);
     if (!list.length) {
       $('#view').innerHTML = `<section><h2>${esc(D.types[type])}</h2><div class="empty">아직 등록된 보고서가 없습니다.<br>
-        Antigravity에 작성을 요청하면 스킬 규칙대로 조사·작성해 이 탭에 게시합니다. 필요한 자료:<ul>${NEED[type].map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div></section>`;
+        주간 보고서는 오른쪽 위 '📤 자료 업로드'로 엑셀을 올리면 자동 작성됩니다. 월간·연간은 Antigravity에 작성을 요청해 주세요. 필요한 자료:<ul>${NEED[type].map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div></section>`;
       return;
     }
     const r = list[idx];
@@ -297,6 +297,7 @@ th.l,td.l{text-align:left}.up{color:var(--up);font-weight:700}.down{color:var(--
   render();
 })();
 </script>
+<script src="trend_upload.js"></script>
 </body></html>
 """
 

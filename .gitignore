@@ -19,5 +19,4 @@ update_log.txt
 
 report_data/*.xls*
 
-# 주간 동향 분석 원본(HWPX·본문) — 게시본은 trends.html / trend_files (공개)
-trend_reports/
+# 주간 동향 분석: trend_inputs(업로드 엑셀)·trend_reports(원본)·trend_files(게시본)은 공개 저장(Actions 자동 생성용)
